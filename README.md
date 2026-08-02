@@ -42,35 +42,33 @@ iPhone을 세워 두고 연습하면, **카메라가 계속 스윙을 지켜보�
 
 ## 요구 사항
 
-- macOS + **Xcode 16 이상** (Xcode 26 대응 포함, 아래 참고)
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) — `brew install xcodegen` (bootstrap 스크립트가 없으면 자동 설치)
+- macOS + **Xcode 16 이상** (Xcode 26에서 확인됨)
 - iPhone (iOS 17+), Apple Watch (watchOS 10+)
-- Apple Developer 계정(무료 개인 팀으로 충분)
+- Apple ID — **무료 계정으로 충분**합니다 (개발자 프로그램 결제 불필요)
 
 ## 시작하기
 
+> **Xcode가 처음이신가요?** 클릭 하나하나까지 적어둔 안내가 있습니다 → **[docs/시작하기.md](docs/시작하기.md)**
+
+`SwingWatch.xcodeproj`가 저장소에 포함되어 있으므로 **터미널도, XcodeGen 설치도 필요 없습니다.**
+
+1. 저장소를 내려받고 **`SwingWatch.xcodeproj`를 더블클릭**해 엽니다.
+2. **서명 설정**: `SwingWatch`, `SwingWatchWatch` **두 타깃 모두** Signing & Capabilities에서 Team을 선택하세요. (하나만 하면 워치 앱이 설치되지 않습니다)
+   - 번들 ID를 바꿔야 한다면 세 곳을 함께 맞춰야 합니다: iOS 타깃 ID → 워치 타깃 ID(`<iOS ID>.watchkitapp`) → `SwingWatchWatch/Info.plist`의 `WKCompanionAppBundleIdentifier`(= iOS ID).
+3. **iPhone에 설치**: `SwingWatch` 스킴 + 내 iPhone 선택 후 ▶︎. 시뮬레이터에는 카메라가 없으니 **실물 기기**가 필요합니다.
+4. **워치 권한**: 워치 앱 첫 세션 시작 시 워크아웃(헬스) 권한을 허용하면 손목을 내려도 햅틱이 옵니다.
+
+무료 Apple ID로 설치한 앱은 **7일 뒤 만료**됩니다. Xcode에서 다시 ▶︎ 를 누르면 갱신됩니다.
+
+### 프로젝트 파일을 직접 생성하려면 (선택)
+
+`project.yml`을 고쳐 타깃이나 파일 구성을 바꾼 경우에만 필요합니다. 보통은 `.github/workflows/generate-project.yml`이 자동으로 다시 생성해 커밋합니다.
+
 ```bash
-git clone <이 저장소>
-cd swingwatch
-./Scripts/bootstrap.sh     # xcodeproj 생성 (+ Xcode 26이면 워치 임베드 자동 패치)
-open SwingWatch.xcodeproj
+./Scripts/bootstrap.sh     # XcodeGen 실행 + Xcode 26이면 워치 임베드 위치 자동 패치
 ```
 
-1. **서명 설정**: `SwingWatch`, `SwingWatchWatch` 두 타깃 모두 Signing & Capabilities에서 팀을 선택하세요.
-   - 번들 ID를 바꾸려면: iOS 타깃 ID 변경 후, 워치 타깃 ID는 반드시 `<iOS ID>.watchkitapp` 형태로 맞추고, `SwingWatchWatch/Info.plist`의 `WKCompanionAppBundleIdentifier`도 iOS ID로 함께 바꿔야 합니다.
-2. **iPhone에 설치**: `SwingWatch` 스킴 + 내 iPhone 선택 후 실행. 워치 앱은 함께 설치됩니다(안 되면 iPhone의 Watch 앱 > 일반 > 앱 설치에서 스윙워치 설치).
-3. **워치 권한**: 워치 앱 첫 세션 시작 시 워크아웃(헬스) 권한을 허용하면 손목을 내려도 햅틱이 옵니다.
-
-### Xcode 26 참고
-
-XcodeGen(2.46 기준)이 생성하는 "Embed Watch Content" 빌드 페이즈는 Xcode 26의 검증 규칙(워치 앱을 `PlugIns/`에 임베드)과 달라 설치가 실패합니다. `Scripts/bootstrap.sh`가 Xcode 버전을 감지해 자동으로 패치하므로 **항상 bootstrap 스크립트로 프로젝트를 생성하세요.** 수동으로 하려면:
-
-```bash
-/usr/bin/sed -i '' \
-  -e 's|dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";|dstPath = "";|' \
-  -e 's|dstSubfolderSpec = 16;|dstSubfolderSpec = 13;|' \
-  SwingWatch.xcodeproj/project.pbxproj
-```
+커밋된 프로젝트는 워치 앱을 `PlugIns/`에 임베드하는 **Xcode 26 방식**으로 맞춰져 있습니다. XcodeGen 기본값인 `Watch/` 임베드는 Xcode 26의 검증에서 거부되기 때문입니다([XcodeGen#1613](https://github.com/yonaskolb/XcodeGen/issues/1613)). CI에서 두 방식을 모두 빌드해 검증합니다.
 
 ## 연습장에서 쓰는 법
 
@@ -85,6 +83,8 @@ XcodeGen(2.46 기준)이 생성하는 "Embed Watch Content" 빌드 페이즈는 
 ## 프로젝트 구조
 
 ```
+docs/시작하기.md                 # Xcode 처음 쓰는 분을 위한 단계별 설치 안내
+SwingWatch.xcodeproj/           # 생성된 Xcode 프로젝트 (커밋되어 있어 바로 열 수 있음)
 project.yml                     # XcodeGen 정의 (iOS 앱 / watchOS 앱 / 유닛 테스트)
 Scripts/bootstrap.sh            # 프로젝트 생성 + Xcode 26 워치 임베드 패치
 Shared/SwingFeedback.swift      # 폰↔워치 공용 모델·메시지 규약
