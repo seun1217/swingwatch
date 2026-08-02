@@ -1,0 +1,725 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		02300BE110731F9CEF8567DC /* FeedbackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B559BC769F81EAAF953633A2 /* FeedbackEngine.swift */; };
+		080CEC67D81F05FD90B3807F /* SwingFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B674CB7C751E1399BDD8018 /* SwingFeedback.swift */; };
+		161AE41028CDFE33AF01EE3F /* SwingDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 944717AAC1050F56B806366A /* SwingDetailView.swift */; };
+		1A1BA117DE625F18F3FF05C3 /* WatchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B94298AA544B1B2F4F796B /* WatchRootView.swift */; };
+		1EA56BBCC42A2B205612399A /* SwingFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B674CB7C751E1399BDD8018 /* SwingFeedback.swift */; };
+		22C408E7AD90E379B0FFF9CA /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF961B6762B331525E7F466E /* WatchConnectivityManager.swift */; };
+		337391F347B98431CD0531BF /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00ACF0430FA6FCC5DB267487 /* CameraPreviewView.swift */; };
+		34A1D7CF81125D7D5DA7A0E9 /* SwingMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD5BB136601CC246FC3EBCE /* SwingMetrics.swift */; };
+		35D44D912422D181F31D37A6 /* SwingRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BC3CF9BE281DD8D9A44932 /* SwingRecord.swift */; };
+		4342AB8E1A3569EC34528A74 /* PoseFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AD613C1CEC21A189D46157 /* PoseFrame.swift */; };
+		4B1F57B4FF12392C34DD2AA8 /* SessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5A7D3FD15D4C8374864F46 /* SessionCoordinator.swift */; };
+		4D0EF376B75B810BEC394A74 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2A8219327DF9EAA847AD5F /* CameraManager.swift */; };
+		5BF0AAD7ECEE11FA12E4067B /* SwingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DEDD6ACFA5821D710846E84 /* SwingStore.swift */; };
+		770BDD08E030E93EE3B151E7 /* PhoneConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD37CD6C59B954E625BCFD2 /* PhoneConnectivity.swift */; };
+		7ADC9653A4796487D9581B0A /* SpeechFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBAD6A99E8C1AF4F5ACF07C /* SpeechFeedback.swift */; };
+		7C5F3A05DA3B3DDECD8EC895 /* SwingTuning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964221FB768027E6DBCD74F1 /* SwingTuning.swift */; };
+		7E2DC6DC0C26FD9C6613DDB5 /* SwingAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D4C99F9B30374A6402D9482 /* SwingAnalyzer.swift */; };
+		8D836FA0C4353180F91E8722 /* FeedbackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B559BC769F81EAAF953633A2 /* FeedbackEngine.swift */; };
+		951A0F31DDB59826B9C5E342 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0CD765A88512E8453109705 /* HistoryView.swift */; };
+		9578FF6A2220194A276CD368 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 213E7323F8B6DCABA8F7C283 /* Assets.xcassets */; };
+		9685C979967CC1A62DB8C5DF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D7A260F94289730F8DB34C79 /* Assets.xcassets */; };
+		981D44669B0362C829E7CB3C /* SwingMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD5BB136601CC246FC3EBCE /* SwingMetrics.swift */; };
+		9D529FA33B87C8F0586A3992 /* PoseOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38EC716EF0934DF213BA9DA /* PoseOverlayView.swift */; };
+		A3A830DCD14BC4E44B0CB512 /* SwingFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B674CB7C751E1399BDD8018 /* SwingFeedback.swift */; };
+		A4506F87919F969AE46E7F7C /* SwingAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D4C99F9B30374A6402D9482 /* SwingAnalyzer.swift */; };
+		B2B9294FA2E387FF0CA7749F /* SwingWatchWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 98E6BC89393FD23E35B12068 /* SwingWatchWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B36010C9EED1EFDD5EFB08C4 /* SwingDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBBE8FD8A09994B31EE808F6 /* SwingDetector.swift */; };
+		B9FC005536880238D875E1EE /* PoseFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AD613C1CEC21A189D46157 /* PoseFrame.swift */; };
+		BB78C99C1D9688157AD5E6A9 /* PoseEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01100623CF4889AD8D4BE95D /* PoseEstimator.swift */; };
+		C09AA00BC4945A3D5817CB33 /* SwingWatchWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D23CE7FC38B326ABD930099A /* SwingWatchWatchApp.swift */; };
+		C44E9DC6452164341307E5A3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D942E91620D6E56E821055 /* ContentView.swift */; };
+		D5AF94FFB054FC2BCFC70126 /* SessionRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C7461CCF3A162130A4DEFFA /* SessionRecorder.swift */; };
+		D62ADFA1079F57C5D575AD8F /* SwingTuning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964221FB768027E6DBCD74F1 /* SwingTuning.swift */; };
+		DE03614B82FCCB77A86DEF5A /* SwingLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DFFEBAB1259A01BC1013B72 /* SwingLogicTests.swift */; };
+		DFFD317F02F6AF07293B7C72 /* FeedbackBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF5FCADFE68B7527863BF82 /* FeedbackBannerView.swift */; };
+		F0E58F9A918DDEBEEB9A9BFD /* SwingDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBBE8FD8A09994B31EE808F6 /* SwingDetector.swift */; };
+		F67FA4DE58CC192549EB701B /* SwingWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F24F27289D6D231368B37189 /* SwingWatchApp.swift */; };
+		FC7E6B390D5F9366DAB65545 /* WorkoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 729BA3DB656FA5A3053C20E7 /* WorkoutManager.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B55DBADBE2798B2EBF7B2D44 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 28253684F88DF9E727E9A16F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 903D3AC7BDA530BD90FF51A4;
+			remoteInfo = SwingWatchWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8DF06E5255A751BC2802E946 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B2B9294FA2E387FF0CA7749F /* SwingWatchWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		00ACF0430FA6FCC5DB267487 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
+		01100623CF4889AD8D4BE95D /* PoseEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseEstimator.swift; sourceTree = "<group>"; };
+		0DFFEBAB1259A01BC1013B72 /* SwingLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingLogicTests.swift; sourceTree = "<group>"; };
+		0E814500EFAA09C8C39C1F48 /* SwingWatch.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SwingWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1CD37CD6C59B954E625BCFD2 /* PhoneConnectivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneConnectivity.swift; sourceTree = "<group>"; };
+		1D2A8219327DF9EAA847AD5F /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		1D4C99F9B30374A6402D9482 /* SwingAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingAnalyzer.swift; sourceTree = "<group>"; };
+		213E7323F8B6DCABA8F7C283 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2381DE586AC92675C618DFFD /* SwingWatchWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwingWatchWatch.entitlements; sourceTree = "<group>"; };
+		2B674CB7C751E1399BDD8018 /* SwingFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingFeedback.swift; sourceTree = "<group>"; };
+		30B94298AA544B1B2F4F796B /* WatchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRootView.swift; sourceTree = "<group>"; };
+		5AF5FCADFE68B7527863BF82 /* FeedbackBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackBannerView.swift; sourceTree = "<group>"; };
+		6C2877B76DE3491700F94DC1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		729BA3DB656FA5A3053C20E7 /* WorkoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutManager.swift; sourceTree = "<group>"; };
+		78AD613C1CEC21A189D46157 /* PoseFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseFrame.swift; sourceTree = "<group>"; };
+		79BC3CF9BE281DD8D9A44932 /* SwingRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingRecord.swift; sourceTree = "<group>"; };
+		8A5A7D3FD15D4C8374864F46 /* SessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinator.swift; sourceTree = "<group>"; };
+		944717AAC1050F56B806366A /* SwingDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingDetailView.swift; sourceTree = "<group>"; };
+		964221FB768027E6DBCD74F1 /* SwingTuning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingTuning.swift; sourceTree = "<group>"; };
+		98E6BC89393FD23E35B12068 /* SwingWatchWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwingWatchWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		99D942E91620D6E56E821055 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9C7461CCF3A162130A4DEFFA /* SessionRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRecorder.swift; sourceTree = "<group>"; };
+		9DEDD6ACFA5821D710846E84 /* SwingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingStore.swift; sourceTree = "<group>"; };
+		B559BC769F81EAAF953633A2 /* FeedbackEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackEngine.swift; sourceTree = "<group>"; };
+		C0CD765A88512E8453109705 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		CBB58DAFB36818B4AB0C5415 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CF961B6762B331525E7F466E /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
+		CFD5BB136601CC246FC3EBCE /* SwingMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingMetrics.swift; sourceTree = "<group>"; };
+		D23CE7FC38B326ABD930099A /* SwingWatchWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingWatchWatchApp.swift; sourceTree = "<group>"; };
+		D7A260F94289730F8DB34C79 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DB059D39F05B5B2004CDE060 /* SwingWatchTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SwingWatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DBBE8FD8A09994B31EE808F6 /* SwingDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingDetector.swift; sourceTree = "<group>"; };
+		EBBAD6A99E8C1AF4F5ACF07C /* SpeechFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechFeedback.swift; sourceTree = "<group>"; };
+		F24F27289D6D231368B37189 /* SwingWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingWatchApp.swift; sourceTree = "<group>"; };
+		F38EC716EF0934DF213BA9DA /* PoseOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseOverlayView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		06B0595AE06E2F459A6E2321 /* Recording */ = {
+			isa = PBXGroup;
+			children = (
+				9C7461CCF3A162130A4DEFFA /* SessionRecorder.swift */,
+			);
+			path = Recording;
+			sourceTree = "<group>";
+		};
+		0E7A5D8E0D8D5C709BA19080 = {
+			isa = PBXGroup;
+			children = (
+				96488FD8C5DF73BACB163FBD /* Shared */,
+				1A451BE9040D302D8239CFC4 /* SwingWatch */,
+				EA4606BA6475337E1FA7B903 /* SwingWatchWatch */,
+				D04A949849C3B27DF738369D /* Tests */,
+				A4E57F85C8253B6EF5594AA5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1A451BE9040D302D8239CFC4 /* SwingWatch */ = {
+			isa = PBXGroup;
+			children = (
+				D7A260F94289730F8DB34C79 /* Assets.xcassets */,
+				34B396EE261568074961976A /* Analysis */,
+				9AF16276F5D754D01AC3A018 /* App */,
+				DFE41364ED12F28246DACC9A /* Camera */,
+				F1067BC6B08765C127A0C86C /* Connectivity */,
+				895190C068BB1DC7691CFC6B /* Pose */,
+				06B0595AE06E2F459A6E2321 /* Recording */,
+				855E3768E21ACC618D5E1EDA /* Speech */,
+				7FAC64DB3158717BBEA7E6F5 /* Storage */,
+				B7B0C8A5D4BF48DAD60440F0 /* Views */,
+			);
+			path = SwingWatch;
+			sourceTree = "<group>";
+		};
+		34B396EE261568074961976A /* Analysis */ = {
+			isa = PBXGroup;
+			children = (
+				B559BC769F81EAAF953633A2 /* FeedbackEngine.swift */,
+				1D4C99F9B30374A6402D9482 /* SwingAnalyzer.swift */,
+				DBBE8FD8A09994B31EE808F6 /* SwingDetector.swift */,
+				CFD5BB136601CC246FC3EBCE /* SwingMetrics.swift */,
+				964221FB768027E6DBCD74F1 /* SwingTuning.swift */,
+			);
+			path = Analysis;
+			sourceTree = "<group>";
+		};
+		4BB5AE9ED9FF27E335E6F4B6 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				30B94298AA544B1B2F4F796B /* WatchRootView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		7FAC64DB3158717BBEA7E6F5 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				79BC3CF9BE281DD8D9A44932 /* SwingRecord.swift */,
+				9DEDD6ACFA5821D710846E84 /* SwingStore.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		855E3768E21ACC618D5E1EDA /* Speech */ = {
+			isa = PBXGroup;
+			children = (
+				EBBAD6A99E8C1AF4F5ACF07C /* SpeechFeedback.swift */,
+			);
+			path = Speech;
+			sourceTree = "<group>";
+		};
+		895190C068BB1DC7691CFC6B /* Pose */ = {
+			isa = PBXGroup;
+			children = (
+				01100623CF4889AD8D4BE95D /* PoseEstimator.swift */,
+				78AD613C1CEC21A189D46157 /* PoseFrame.swift */,
+			);
+			path = Pose;
+			sourceTree = "<group>";
+		};
+		96488FD8C5DF73BACB163FBD /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				2B674CB7C751E1399BDD8018 /* SwingFeedback.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		9AF16276F5D754D01AC3A018 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				CBB58DAFB36818B4AB0C5415 /* Info.plist */,
+				8A5A7D3FD15D4C8374864F46 /* SessionCoordinator.swift */,
+				F24F27289D6D231368B37189 /* SwingWatchApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A4E57F85C8253B6EF5594AA5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0E814500EFAA09C8C39C1F48 /* SwingWatch.app */,
+				DB059D39F05B5B2004CDE060 /* SwingWatchTests.xctest */,
+				98E6BC89393FD23E35B12068 /* SwingWatchWatch.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B7B0C8A5D4BF48DAD60440F0 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				00ACF0430FA6FCC5DB267487 /* CameraPreviewView.swift */,
+				99D942E91620D6E56E821055 /* ContentView.swift */,
+				5AF5FCADFE68B7527863BF82 /* FeedbackBannerView.swift */,
+				C0CD765A88512E8453109705 /* HistoryView.swift */,
+				F38EC716EF0934DF213BA9DA /* PoseOverlayView.swift */,
+				944717AAC1050F56B806366A /* SwingDetailView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D04A949849C3B27DF738369D /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				0DFFEBAB1259A01BC1013B72 /* SwingLogicTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		DFE41364ED12F28246DACC9A /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				1D2A8219327DF9EAA847AD5F /* CameraManager.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		EA4606BA6475337E1FA7B903 /* SwingWatchWatch */ = {
+			isa = PBXGroup;
+			children = (
+				213E7323F8B6DCABA8F7C283 /* Assets.xcassets */,
+				6C2877B76DE3491700F94DC1 /* Info.plist */,
+				2381DE586AC92675C618DFFD /* SwingWatchWatch.entitlements */,
+				D23CE7FC38B326ABD930099A /* SwingWatchWatchApp.swift */,
+				CF961B6762B331525E7F466E /* WatchConnectivityManager.swift */,
+				729BA3DB656FA5A3053C20E7 /* WorkoutManager.swift */,
+				4BB5AE9ED9FF27E335E6F4B6 /* Views */,
+			);
+			path = SwingWatchWatch;
+			sourceTree = "<group>";
+		};
+		F1067BC6B08765C127A0C86C /* Connectivity */ = {
+			isa = PBXGroup;
+			children = (
+				1CD37CD6C59B954E625BCFD2 /* PhoneConnectivity.swift */,
+			);
+			path = Connectivity;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		14DBB4CD952814F234F94B1C /* SwingWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9A3B51650EE918F4C7CE0372 /* Build configuration list for PBXNativeTarget "SwingWatch" */;
+			buildPhases = (
+				F6DBFB0673D8D8E7525E0F3E /* Sources */,
+				E0D106955F7C5429216D6BB7 /* Resources */,
+				8DF06E5255A751BC2802E946 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2356A4EFC765C28239461A4F /* PBXTargetDependency */,
+			);
+			name = SwingWatch;
+			packageProductDependencies = (
+			);
+			productName = SwingWatch;
+			productReference = 0E814500EFAA09C8C39C1F48 /* SwingWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		903D3AC7BDA530BD90FF51A4 /* SwingWatchWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6039F231AF475580CE102291 /* Build configuration list for PBXNativeTarget "SwingWatchWatch" */;
+			buildPhases = (
+				9FED97EF7F365705142DC626 /* Sources */,
+				FD74BCB12B7B0560F66E48DD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SwingWatchWatch;
+			packageProductDependencies = (
+			);
+			productName = SwingWatchWatch;
+			productReference = 98E6BC89393FD23E35B12068 /* SwingWatchWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DDEFF2E992FBAB2BF6A507BC /* SwingWatchTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8591FF93A122769E3601F1FA /* Build configuration list for PBXNativeTarget "SwingWatchTests" */;
+			buildPhases = (
+				FEE362DA30F6B80D29D8F2A4 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SwingWatchTests;
+			packageProductDependencies = (
+			);
+			productName = SwingWatchTests;
+			productReference = DB059D39F05B5B2004CDE060 /* SwingWatchTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		28253684F88DF9E727E9A16F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					14DBB4CD952814F234F94B1C = {
+						ProvisioningStyle = Automatic;
+					};
+					903D3AC7BDA530BD90FF51A4 = {
+						ProvisioningStyle = Automatic;
+					};
+					DDEFF2E992FBAB2BF6A507BC = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = E2A751ECFE0FF1DF71D7FAEC /* Build configuration list for PBXProject "SwingWatch" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0E7A5D8E0D8D5C709BA19080;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A4E57F85C8253B6EF5594AA5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				14DBB4CD952814F234F94B1C /* SwingWatch */,
+				903D3AC7BDA530BD90FF51A4 /* SwingWatchWatch */,
+				DDEFF2E992FBAB2BF6A507BC /* SwingWatchTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E0D106955F7C5429216D6BB7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9685C979967CC1A62DB8C5DF /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD74BCB12B7B0560F66E48DD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9578FF6A2220194A276CD368 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9FED97EF7F365705142DC626 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1EA56BBCC42A2B205612399A /* SwingFeedback.swift in Sources */,
+				C09AA00BC4945A3D5817CB33 /* SwingWatchWatchApp.swift in Sources */,
+				22C408E7AD90E379B0FFF9CA /* WatchConnectivityManager.swift in Sources */,
+				1A1BA117DE625F18F3FF05C3 /* WatchRootView.swift in Sources */,
+				FC7E6B390D5F9366DAB65545 /* WorkoutManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6DBFB0673D8D8E7525E0F3E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D0EF376B75B810BEC394A74 /* CameraManager.swift in Sources */,
+				337391F347B98431CD0531BF /* CameraPreviewView.swift in Sources */,
+				C44E9DC6452164341307E5A3 /* ContentView.swift in Sources */,
+				DFFD317F02F6AF07293B7C72 /* FeedbackBannerView.swift in Sources */,
+				8D836FA0C4353180F91E8722 /* FeedbackEngine.swift in Sources */,
+				951A0F31DDB59826B9C5E342 /* HistoryView.swift in Sources */,
+				770BDD08E030E93EE3B151E7 /* PhoneConnectivity.swift in Sources */,
+				BB78C99C1D9688157AD5E6A9 /* PoseEstimator.swift in Sources */,
+				B9FC005536880238D875E1EE /* PoseFrame.swift in Sources */,
+				9D529FA33B87C8F0586A3992 /* PoseOverlayView.swift in Sources */,
+				4B1F57B4FF12392C34DD2AA8 /* SessionCoordinator.swift in Sources */,
+				D5AF94FFB054FC2BCFC70126 /* SessionRecorder.swift in Sources */,
+				7ADC9653A4796487D9581B0A /* SpeechFeedback.swift in Sources */,
+				A4506F87919F969AE46E7F7C /* SwingAnalyzer.swift in Sources */,
+				161AE41028CDFE33AF01EE3F /* SwingDetailView.swift in Sources */,
+				F0E58F9A918DDEBEEB9A9BFD /* SwingDetector.swift in Sources */,
+				A3A830DCD14BC4E44B0CB512 /* SwingFeedback.swift in Sources */,
+				34A1D7CF81125D7D5DA7A0E9 /* SwingMetrics.swift in Sources */,
+				35D44D912422D181F31D37A6 /* SwingRecord.swift in Sources */,
+				5BF0AAD7ECEE11FA12E4067B /* SwingStore.swift in Sources */,
+				7C5F3A05DA3B3DDECD8EC895 /* SwingTuning.swift in Sources */,
+				F67FA4DE58CC192549EB701B /* SwingWatchApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FEE362DA30F6B80D29D8F2A4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				02300BE110731F9CEF8567DC /* FeedbackEngine.swift in Sources */,
+				4342AB8E1A3569EC34528A74 /* PoseFrame.swift in Sources */,
+				7E2DC6DC0C26FD9C6613DDB5 /* SwingAnalyzer.swift in Sources */,
+				B36010C9EED1EFDD5EFB08C4 /* SwingDetector.swift in Sources */,
+				080CEC67D81F05FD90B3807F /* SwingFeedback.swift in Sources */,
+				DE03614B82FCCB77A86DEF5A /* SwingLogicTests.swift in Sources */,
+				981D44669B0362C829E7CB3C /* SwingMetrics.swift in Sources */,
+				D62ADFA1079F57C5D575AD8F /* SwingTuning.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2356A4EFC765C28239461A4F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 903D3AC7BDA530BD90FF51A4 /* SwingWatchWatch */;
+			targetProxy = B55DBADBE2798B2EBF7B2D44 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0A3106362AC6AA7BA4F126F2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = SwingWatch/App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.seun1217.swingwatch;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		2F7BE85A7316A127EF7D31C6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		525353789FB621A3D8DFB0F4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.seun1217.swingwatch.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5EA3C9A537991BD1B405BB76 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = SwingWatch/App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.seun1217.swingwatch;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		8551CEC3C7C5752DDD226615 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SwingWatchWatch/SwingWatchWatch.entitlements;
+				INFOPLIST_FILE = SwingWatchWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.seun1217.swingwatch.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		9F9E3E0CF7584F08EF0429A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		EA5DEC0B46C322F4C677EDCC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.seun1217.swingwatch.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F237F210079D2DE920A6D5BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SwingWatchWatch/SwingWatchWatch.entitlements;
+				INFOPLIST_FILE = SwingWatchWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.seun1217.swingwatch.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6039F231AF475580CE102291 /* Build configuration list for PBXNativeTarget "SwingWatchWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8551CEC3C7C5752DDD226615 /* Debug */,
+				F237F210079D2DE920A6D5BA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8591FF93A122769E3601F1FA /* Build configuration list for PBXNativeTarget "SwingWatchTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				525353789FB621A3D8DFB0F4 /* Debug */,
+				EA5DEC0B46C322F4C677EDCC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9A3B51650EE918F4C7CE0372 /* Build configuration list for PBXNativeTarget "SwingWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5EA3C9A537991BD1B405BB76 /* Debug */,
+				0A3106362AC6AA7BA4F126F2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E2A751ECFE0FF1DF71D7FAEC /* Build configuration list for PBXProject "SwingWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9F9E3E0CF7584F08EF0429A7 /* Debug */,
+				2F7BE85A7316A127EF7D31C6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 28253684F88DF9E727E9A16F /* Project object */;
+}
