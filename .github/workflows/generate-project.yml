@@ -1,0 +1,89 @@
+name: generate-project
+
+# XcodeGen이 만든 SwingWatch.xcodeproj를 저장소에 커밋해 둔다.
+# 덕분에 Xcode를 처음 쓰는 사람도 Homebrew/터미널 없이 프로젝트를 바로 열 수 있다.
+# project.yml이 바뀌면 자동으로 다시 생성된다.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "project.yml"
+      - ".github/workflows/generate-project.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain versions
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Verify unpatched project builds
+        id: unpatched
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project SwingWatch.xcodeproj \
+            -scheme SwingWatch \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -20
+
+      - name: Patch watch embed location for Xcode 26
+        run: |
+          /usr/bin/sed -i '' \
+            -e 's|dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";|dstPath = "";|' \
+            -e 's|dstSubfolderSpec = 16;|dstSubfolderSpec = 13;|' \
+            SwingWatch.xcodeproj/project.pbxproj
+
+      - name: Verify patched project also builds on this Xcode
+        id: patched
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          xcodebuild clean build \
+            -project SwingWatch.xcodeproj \
+            -scheme SwingWatch \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -20
+
+      - name: Report compatibility
+        run: |
+          echo "unpatched build: ${{ steps.unpatched.outcome }}"
+          echo "patched build:   ${{ steps.patched.outcome }}"
+          {
+            echo "| layout | result on $(xcodebuild -version | head -1) |"
+            echo "|---|---|"
+            echo "| Watch/ (XcodeGen default) | ${{ steps.unpatched.outcome }} |"
+            echo "| PlugIns/ (Xcode 26 style) | ${{ steps.patched.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit generated project
+        run: |
+          git config user.name "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add -f SwingWatch.xcodeproj
+          if git diff --cached --quiet; then
+            echo "생성된 프로젝트에 변경 사항이 없습니다."
+            exit 0
+          fi
+          git commit -m "생성된 SwingWatch.xcodeproj 커밋 (터미널 없이 바로 열기)
+
+          project.yml로부터 XcodeGen이 생성한 프로젝트 파일이며, 워치 앱
+          임베드 위치는 Xcode 26 규칙(PlugIns/)에 맞춰 패치되어 있다.
+          project.yml이 바뀌면 이 워크플로가 다시 생성해 커밋한다."
+          git push origin HEAD:${GITHUB_REF_NAME}
