@@ -1,0 +1,83 @@
+# XcodeGen 프로젝트 정의.
+# 사용법: Scripts/bootstrap.sh 실행 (또는 `xcodegen generate` 후 Xcode 26이면 README의 패치 적용)
+name: SwingWatch
+
+options:
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # 개인 팀으로 빌드하려면 Xcode의 Signing & Capabilities에서 팀만 선택하면 된다.
+
+targets:
+  SwingWatch:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: SwingWatch
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.seun1217.swingwatch
+        INFOPLIST_FILE: SwingWatch/App/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: "NO"
+    dependencies:
+      - target: SwingWatchWatch
+        embed: true
+
+  SwingWatchWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - path: SwingWatchWatch
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.seun1217.swingwatch.watchkitapp
+        INFOPLIST_FILE: SwingWatchWatch/Info.plist
+        CODE_SIGN_ENTITLEMENTS: SwingWatchWatch/SwingWatchWatch.entitlements
+        TARGETED_DEVICE_FAMILY: "4"
+
+  SwingWatchTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      # 순수 로직 파일을 직접 컴파일하므로 호스트 앱 없이 돌아가는 로직 테스트다.
+      - path: Tests
+      - path: SwingWatch/Analysis
+      - path: SwingWatch/Pose/PoseFrame.swift
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.seun1217.swingwatch.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+
+schemes:
+  SwingWatch:
+    build:
+      targets:
+        SwingWatch: all
+        SwingWatchTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SwingWatchTests
+  SwingWatchWatch:
+    build:
+      targets:
+        SwingWatchWatch: all
+    run:
+      config: Debug
