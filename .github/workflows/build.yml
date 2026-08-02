@@ -1,0 +1,47 @@
+name: build
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build iOS + watchOS apps (simulator, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project SwingWatch.xcodeproj \
+            -scheme SwingWatch \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -100
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          DEVICE=$(xcrun simctl list devices available --json | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          names = [d['name'] for devs in data['devices'].values() for d in devs
+                   if d['name'].startswith('iPhone')]
+          print(sorted(names)[-1] if names else 'iPhone 16')
+          ")
+          echo "Using simulator: ${DEVICE}"
+          xcodebuild test \
+            -project SwingWatch.xcodeproj \
+            -scheme SwingWatch \
+            -destination "platform=iOS Simulator,name=${DEVICE}" \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -150
