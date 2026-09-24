@@ -14,7 +14,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     @Published private(set) var isPhoneReachable = false
     @Published var statusMessage: String?
 
-    /// 세션 시작/종료 상태가 바뀔 때 호출(메인 큐). 자동 워크아웃 연동에 쓴다.
+    /// 세션 시작/종료 상태가 바뀔 때 호출(메인 큐). 백그라운드 유지 자동 연동에 쓴다.
     var onSessionStateChange: ((Bool) -> Void)?
 
     private let maxHistory = 30

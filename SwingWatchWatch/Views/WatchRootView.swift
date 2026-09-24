@@ -4,7 +4,8 @@ import SwiftUI
 struct WatchRootView: View {
 
     @EnvironmentObject private var connectivity: WatchConnectivityManager
-    @EnvironmentObject private var workout: WorkoutManager
+    @EnvironmentObject private var keepAlive: KeepAliveManager
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         TabView {
@@ -14,16 +15,27 @@ struct WatchRootView: View {
         }
         .tabViewStyle(.verticalPage)
         .onAppear {
-            // 세션 상태에 맞춰 워크아웃을 자동 시작/종료해
-            // 손목을 내려도 햅틱 피드백을 받을 수 있게 한다.
-            connectivity.onSessionStateChange = { [weak workout] active in
-                guard UserDefaults.standard.bool(forKey: SettingsKey.autoWorkout),
-                      let workout else { return }
+            // 세션 상태에 맞춰 백그라운드 유지를 자동으로 켜고 끈다.
+            // 손목을 내려도 앱이 살아 있어 햅틱 피드백을 받을 수 있다.
+            connectivity.onSessionStateChange = { [weak keepAlive] active in
+                guard let keepAlive else { return }
                 if active {
-                    workout.start()
+                    if UserDefaults.standard.bool(forKey: SettingsKey.autoKeepAlive) {
+                        keepAlive.start()
+                    }
                 } else {
-                    workout.stop()
+                    keepAlive.stop()
                 }
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // 확장 실행 세션은 앱이 화면에 있을 때만 시작할 수 있으므로,
+            // iPhone에서 세션을 시작한 뒤 워치 앱을 열면 그때 켠다.
+            if phase == .active,
+               connectivity.isSessionActive,
+               !keepAlive.isRunning,
+               UserDefaults.standard.bool(forKey: SettingsKey.autoKeepAlive) {
+                keepAlive.start()
             }
         }
     }
@@ -151,16 +163,16 @@ struct HistoryListView: View {
 struct SettingsView: View {
 
     @EnvironmentObject private var connectivity: WatchConnectivityManager
-    @EnvironmentObject private var workout: WorkoutManager
-    @AppStorage(SettingsKey.autoWorkout) private var autoWorkout = true
+    @EnvironmentObject private var keepAlive: KeepAliveManager
+    @AppStorage(SettingsKey.autoKeepAlive) private var autoKeepAlive = true
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Toggle("자동 워크아웃", isOn: $autoWorkout)
+                Toggle("자동 백그라운드 유지", isOn: $autoKeepAlive)
                     .font(.footnote)
 
-                Text("세션 중 골프 워크아웃을 실행해 손목을 내려도 햅틱 피드백을 받아요.")
+                Text("세션 중 앱을 깨어 있게 해 손목을 내려도 햅틱 피드백을 받아요. 한 번에 최대 1시간.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
 
@@ -168,17 +180,17 @@ struct SettingsView: View {
 
                 HStack {
                     Circle()
-                        .fill(workout.isRunning ? Color.green : Color.gray)
+                        .fill(keepAlive.isRunning ? Color.green : Color.gray)
                         .frame(width: 8, height: 8)
-                    Text(workout.isRunning ? "워크아웃 실행 중" : "워크아웃 꺼짐")
+                    Text(keepAlive.isRunning ? "백그라운드 유지 중" : "백그라운드 유지 꺼짐")
                         .font(.caption2)
                 }
 
-                Button(workout.isRunning ? "워크아웃 종료" : "워크아웃 시작") {
-                    if workout.isRunning {
-                        workout.stop()
+                Button(keepAlive.isRunning ? "유지 끄기" : "유지 켜기") {
+                    if keepAlive.isRunning {
+                        keepAlive.stop()
                     } else {
-                        workout.start()
+                        keepAlive.start()
                     }
                 }
                 .font(.footnote)
@@ -191,7 +203,7 @@ struct SettingsView: View {
                         .font(.caption2)
                 }
 
-                if let error = workout.lastError {
+                if let error = keepAlive.lastError {
                     Text(error)
                         .font(.caption2)
                         .foregroundStyle(.orange)

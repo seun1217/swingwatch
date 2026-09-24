@@ -24,10 +24,6 @@
 	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>골프 스윙을 촬영하고 자세를 분석하기 위해 카메라를 사용합니다.</string>
-	<key>NSHealthShareUsageDescription</key>
-	<string>워치 앱이 연습 세션 동안 골프 워크아웃을 실행하기 위해 사용합니다.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>워치 앱이 연습 세션 동안 골프 워크아웃을 실행하기 위해 사용합니다.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

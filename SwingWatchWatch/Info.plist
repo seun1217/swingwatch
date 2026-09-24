@@ -20,15 +20,11 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>NSHealthShareUsageDescription</key>
-	<string>연습 세션 동안 골프 워크아웃을 실행해 손목을 내려도 피드백 햅틱을 받기 위해 사용합니다.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>연습 세션 동안 골프 워크아웃을 실행하기 위해 사용합니다.</string>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKBackgroundModes</key>
 	<array>
-		<string>workout-processing</string>
+		<string>physical-therapy</string>
 	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.seun1217.swingwatch</string>

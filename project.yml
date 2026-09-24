@@ -45,7 +45,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.seun1217.swingwatch.watchkitapp
         INFOPLIST_FILE: SwingWatchWatch/Info.plist
-        CODE_SIGN_ENTITLEMENTS: SwingWatchWatch/SwingWatchWatch.entitlements
         TARGETED_DEVICE_FAMILY: "4"
 
   SwingWatchTests:

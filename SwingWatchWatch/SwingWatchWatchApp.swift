@@ -4,22 +4,22 @@ import SwiftUI
 struct SwingWatchWatchApp: App {
 
     @StateObject private var connectivity = WatchConnectivityManager()
-    @StateObject private var workout = WorkoutManager()
+    @StateObject private var keepAlive = KeepAliveManager()
 
     init() {
-        // "자동 워크아웃"의 기본값은 켜짐
-        UserDefaults.standard.register(defaults: [SettingsKey.autoWorkout: true])
+        // "자동 백그라운드 유지"의 기본값은 켜짐
+        UserDefaults.standard.register(defaults: [SettingsKey.autoKeepAlive: true])
     }
 
     var body: some Scene {
         WindowGroup {
             WatchRootView()
                 .environmentObject(connectivity)
-                .environmentObject(workout)
+                .environmentObject(keepAlive)
         }
     }
 }
 
 enum SettingsKey {
-    static let autoWorkout = "autoWorkout"
+    static let autoKeepAlive = "autoKeepAlive"
 }
