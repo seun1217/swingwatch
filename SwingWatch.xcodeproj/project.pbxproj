@@ -42,9 +42,9 @@
 		D62ADFA1079F57C5D575AD8F /* SwingTuning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 964221FB768027E6DBCD74F1 /* SwingTuning.swift */; };
 		DE03614B82FCCB77A86DEF5A /* SwingLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DFFEBAB1259A01BC1013B72 /* SwingLogicTests.swift */; };
 		DFFD317F02F6AF07293B7C72 /* FeedbackBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF5FCADFE68B7527863BF82 /* FeedbackBannerView.swift */; };
+		E16FF493D1249CCD17C8B9A9 /* KeepAliveManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAD5A694629A6CC322FC6537 /* KeepAliveManager.swift */; };
 		F0E58F9A918DDEBEEB9A9BFD /* SwingDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBBE8FD8A09994B31EE808F6 /* SwingDetector.swift */; };
 		F67FA4DE58CC192549EB701B /* SwingWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F24F27289D6D231368B37189 /* SwingWatchApp.swift */; };
-		FC7E6B390D5F9366DAB65545 /* WorkoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 729BA3DB656FA5A3053C20E7 /* WorkoutManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,12 +80,10 @@
 		1D2A8219327DF9EAA847AD5F /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
 		1D4C99F9B30374A6402D9482 /* SwingAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingAnalyzer.swift; sourceTree = "<group>"; };
 		213E7323F8B6DCABA8F7C283 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		2381DE586AC92675C618DFFD /* SwingWatchWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SwingWatchWatch.entitlements; sourceTree = "<group>"; };
 		2B674CB7C751E1399BDD8018 /* SwingFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingFeedback.swift; sourceTree = "<group>"; };
 		30B94298AA544B1B2F4F796B /* WatchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRootView.swift; sourceTree = "<group>"; };
 		5AF5FCADFE68B7527863BF82 /* FeedbackBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackBannerView.swift; sourceTree = "<group>"; };
 		6C2877B76DE3491700F94DC1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		729BA3DB656FA5A3053C20E7 /* WorkoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutManager.swift; sourceTree = "<group>"; };
 		78AD613C1CEC21A189D46157 /* PoseFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseFrame.swift; sourceTree = "<group>"; };
 		79BC3CF9BE281DD8D9A44932 /* SwingRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingRecord.swift; sourceTree = "<group>"; };
 		8A5A7D3FD15D4C8374864F46 /* SessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCoordinator.swift; sourceTree = "<group>"; };
@@ -102,6 +100,7 @@
 		CFD5BB136601CC246FC3EBCE /* SwingMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingMetrics.swift; sourceTree = "<group>"; };
 		D23CE7FC38B326ABD930099A /* SwingWatchWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingWatchWatchApp.swift; sourceTree = "<group>"; };
 		D7A260F94289730F8DB34C79 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DAD5A694629A6CC322FC6537 /* KeepAliveManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepAliveManager.swift; sourceTree = "<group>"; };
 		DB059D39F05B5B2004CDE060 /* SwingWatchTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SwingWatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBBE8FD8A09994B31EE808F6 /* SwingDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwingDetector.swift; sourceTree = "<group>"; };
 		EBBAD6A99E8C1AF4F5ACF07C /* SpeechFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechFeedback.swift; sourceTree = "<group>"; };
@@ -254,10 +253,9 @@
 			children = (
 				213E7323F8B6DCABA8F7C283 /* Assets.xcassets */,
 				6C2877B76DE3491700F94DC1 /* Info.plist */,
-				2381DE586AC92675C618DFFD /* SwingWatchWatch.entitlements */,
+				DAD5A694629A6CC322FC6537 /* KeepAliveManager.swift */,
 				D23CE7FC38B326ABD930099A /* SwingWatchWatchApp.swift */,
 				CF961B6762B331525E7F466E /* WatchConnectivityManager.swift */,
-				729BA3DB656FA5A3053C20E7 /* WorkoutManager.swift */,
 				4BB5AE9ED9FF27E335E6F4B6 /* Views */,
 			);
 			path = SwingWatchWatch;
@@ -394,11 +392,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E16FF493D1249CCD17C8B9A9 /* KeepAliveManager.swift in Sources */,
 				1EA56BBCC42A2B205612399A /* SwingFeedback.swift in Sources */,
 				C09AA00BC4945A3D5817CB33 /* SwingWatchWatchApp.swift in Sources */,
 				22C408E7AD90E379B0FFF9CA /* WatchConnectivityManager.swift in Sources */,
 				1A1BA117DE625F18F3FF05C3 /* WatchRootView.swift in Sources */,
-				FC7E6B390D5F9366DAB65545 /* WorkoutManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -573,7 +571,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = SwingWatchWatch/SwingWatchWatch.entitlements;
 				INFOPLIST_FILE = SwingWatchWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.seun1217.swingwatch.watchkitapp;
 				SDKROOT = watchos;
@@ -670,7 +667,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = SwingWatchWatch/SwingWatchWatch.entitlements;
 				INFOPLIST_FILE = SwingWatchWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.seun1217.swingwatch.watchkitapp;
 				SDKROOT = watchos;
