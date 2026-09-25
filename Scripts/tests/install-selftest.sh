@@ -130,6 +130,32 @@ ACCTS=defaults-accounts-signed-out.txt; TEAMS=defaults-teams-free.txt
 xt_pick_team >/dev/null 2>&1; check "로그아웃 상태면 남아 있는 팀 캐시를 쓰지 않음" "$?" "1"
 ACCTS=""; TEAMS=""
 xt_pick_team >/dev/null 2>&1; check "아직 로그인 전이면 기다림" "$?" "1"
+
+# 예전에 다른 Apple ID(팀 OLDTEAM123)로 쓰던 Mac: 그 팀의 캐시와 키체인 인증서는 고르지 않는다
+make_cert() {   # $1: OU(팀 ID) → PEM
+  openssl req -x509 -newkey rsa:2048 -nodes -keyout "$WORK/k.pem" -days 30 \
+    -subj "/UID=ABCDEFGHIJ/CN=Apple Development: someone (ZZZZZZZZZZ)/OU=$1/O=Someone/C=US" 2>/dev/null
+}
+cat > "$WORK/stale-teams.txt" <<'TXT'
+{
+    "99999999-0000-0000-0000-000000000000" =     (
+                {
+            isFreeProvisioningTeam = 1;
+            teamID = OLDTEAM123;
+            teamName = "Other Person (Personal Team)";
+            teamType = "Personal Team";
+        }
+    );
+}
+TXT
+ACCTS=defaults-accounts-signed-in.txt; TEAMS="../../../../$(basename "$WORK")/stale-teams.txt"
+cp "$WORK/stale-teams.txt" "$FX/.stale-teams.tmp"; TEAMS=.stale-teams.tmp
+CERT="$(make_cert OLDTEAM123)"
+security() { [ "$1" = find-certificate ] && printf '%s\n' "$CERT"; return 0; }
+xt_pick_team >/dev/null 2>&1; check "다른 Apple ID의 팀·인증서는 고르지 않고 기다림" "$?" "1"
+CERT="$(make_cert NEWTEAM999)"
+check "지금 계정의 인증서 팀은 사용(캐시가 아직 없을 때)" "$(xt_pick_team 2>/dev/null)" "NEWTEAM999"
+rm -f "$FX/.stale-teams.tmp"
 unset -f defaults security
 
 # 실제 macOS의 defaults 출력 형식으로도 확인(설명서가 아니라 진짜 출력을 파싱하는지).
@@ -247,6 +273,17 @@ xcodebuild() {
     case "$a" in BUNDLE_ID_PREFIX=*) prefix="${a#BUNDLE_ID_PREFIX=}" ;; esac
     prev="$a"
   done
+  local dest="" q=""
+  for a in "$@"; do [ "$q" = "-destination" ] && dest="$a"; q="$a"; done
+  if [ "${FAKE_BUSY_ALWAYS:-0}" = 1 ] && [ "${dest#platform=iOS}" != "$dest" ]; then
+    echo '{ platform:iOS, id:x, name:Test iPhone, error:Test iPhone is busy: Preparing the watch for development }'
+    return 70
+  fi
+  if [ "${FAKE_NO_DEVICE:-0}" = 1 ] && [ ! -f "$T/nodev-done" ]; then
+    : > "$T/nodev-done"
+    echo 'error: Communication with Apple failed: Your team has no devices from which to generate a provisioning profile.'
+    return 65
+  fi
   if [ "${FAKE_BUSY:-0}" = 1 ] && [ ! -f "$T/busy-done" ]; then
     : > "$T/busy-done"
     echo '{ platform:iOS, id:x, name:Test iPhone, error:Device is busy (Preparing the watch for development via Test iPhone) }'
@@ -391,6 +428,33 @@ contains "흐름 10: 백업 후 되돌림 안내" "$T/flow10.out" "백업해 두
 check "흐름 10: 백업 파일 생성" "$(find "$T/SwingWatch/.install" -name 'xcodeproj-*.patch' | grep -c .)" "1"
 contains "흐름 10: 직접 정한 앱 ID로 빌드" "$T/calls.log" "BUNDLE_ID_PREFIX=com.mine build"
 check "흐름 10: 프로젝트 파일은 원래대로" "$(git -C "$T/SwingWatch" status --porcelain -- SwingWatch.xcodeproj | grep -c .)" "0"
+
+# 전에 고른 iPhone이 꺼져 있으면 연결된 다른 iPhone을 쓴다
+printf 'iphone=00008030-000D44444444402E\n' > "$T/SwingWatch/.install/config"; FAKE_DEVICES=flow-saved-iphone-offline.json
+check "흐름 11: 저장된 폰이 꺼져 있어도 설치 완료" "$(run_flow "$T/flow11.out")" "0"
+contains "흐름 11: 연결된 iPhone으로 빌드" "$T/calls.log" "platform=iOS,id=00008110-000A11111111801E"
+FAKE_DEVICES=""
+
+# 새 무료 팀의 첫 빌드에서 '기기 없음'이 나면 한 번 더 빌드
+rm -f "$T/nodev-done"; FAKE_NO_DEVICE=1
+check "흐름 12: '기기 없음' 뒤 재빌드로 설치 완료" "$(run_flow "$T/flow12.out")" "0"
+contains "흐름 12: 재빌드 안내" "$T/flow12.out" "등록하는 중이에요"
+check "흐름 12: 워치도 건너뛰지 않고 설치" "$(grep -c '워치에 스윙워치가 설치됐어요' "$T/flow12.out")" "1"
+FAKE_NO_DEVICE=0
+
+# 워치를 건너뛰었는데 iPhone이 '워치 준비 중'으로 묶여 있으면 기기 지정 없는 빌드로 진행
+FAKE_BUSY_ALWAYS=1 SWINGWATCH_SKIP_WATCH=1
+check "흐름 13: 워치 없이 busy여도 설치 완료" "$(run_flow "$T/flow13.out")" "0"
+contains "흐름 13: 기기 지정 없는 빌드 사용" "$T/calls.log" "-destination generic/platform=iOS"
+FAKE_BUSY_ALWAYS=0 SWINGWATCH_SKIP_WATCH=0
+
+# 원격 기록이 다시 쓰여도(강제 푸시) 설치 도우미가 둔 코드면 새 기록으로 따라간다
+( cd "$T/src" && git -c user.name=m -c user.email=m@example.com commit -q --amend -m "rewritten history" \
+  && git push -q -f "$T/remote.git" HEAD:refs/heads/main ) 2>/dev/null
+NEW_HEAD="$(git -C "$T/src" rev-parse HEAD)"
+check "흐름 14: 기록이 바뀐 원격도 설치 완료" "$(run_flow "$T/flow14.out")" "0"
+contains "흐름 14: 업데이트함" "$T/flow14.out" "최신 코드로 업데이트했어요"
+check "흐름 14: 새 기록으로 이동" "$(git -C "$T/SwingWatch" rev-parse HEAD)" "$NEW_HEAD"
 
 echo
 echo "통과 $PASS, 실패 $FAIL"

@@ -52,7 +52,7 @@ IPHONE_PAIR=""; IPHONE_TUNNEL=""; IPHONE_TRANSPORT=""
 WATCH_ID=""; WATCH_UDID=""; WATCH_NAME=""; WATCH_OS=""; WATCH_DEVMODE=""
 WATCH_PAIR=""; WATCH_TUNNEL=""; WATCH_READY=0
 DERIVED=""; APP_PATH=""; WATCH_APP_PATH=""
-BUILD_ERR=""; PLATFORMS_DOWNLOADED=0; POLL_REPLY=""; PREFERRED_IPHONE=""; LAST_DEVICES_LOG=""
+OS_TOO_NEW=""; BUILD_ERR=""; PLATFORMS_DOWNLOADED=0; POLL_REPLY=""; PREFERRED_IPHONE=""; LAST_DEVICES_LOG=""
 
 # ----------------------------------------------------------------------------
 # 화면 출력
@@ -327,6 +327,7 @@ fetch_code() {
   log "installer: branch=$BRANCH xcode=$XCODE_APP major=$XCODE_MAJOR macOS=$(sw_vers -productVersion 2>/dev/null) commit=$(git -C "$INSTALL_DIR" rev-parse --short HEAD 2>/dev/null)"
   cat "$WORK"/*.log 2>/dev/null | redact >> "$LOG_FILE" || true
   [ -f "$INSTALL_DIR/$PROJECT_NAME.xcodeproj/project.pbxproj" ] || die "내려받은 코드에 Xcode 프로젝트가 없어요."
+  config_set installed_commit "$(gitc rev-parse HEAD 2>/dev/null)"
   DERIVED="$INSTALL_DIR/.build"
 }
 
@@ -352,7 +353,11 @@ update_code() {
     return 0
   fi
   ahead="$(gitc rev-list --count FETCH_HEAD..HEAD 2>/dev/null || echo 1)"
-  if [ "$ahead" != 0 ]; then
+  local reset=0
+  if [ "$ahead" != 0 ] && [ "$(gitc rev-parse HEAD 2>/dev/null)" = "$(config_get installed_commit)" ]; then
+    reset=1   # 원격 기록이 다시 쓰였을 뿐, 사용자가 만든 커밋은 없다
+  fi
+  if [ "$ahead" != 0 ] && [ "$reset" = 0 ]; then
     warn "직접 저장(커밋)한 변경이 있어서 업데이트는 건너뛰고 지금 코드로 설치할게요."
     return 0
   fi
@@ -365,7 +370,8 @@ update_code() {
     gitc checkout --quiet -- "$PROJECT_NAME.xcodeproj" 2>/dev/null || true
     info "Xcode에서 바꾼 프로젝트 설정은 백업해 두고 되돌렸어요 (${patch#"$INSTALL_DIR"/})"
   fi
-  if gitc merge --quiet --ff-only FETCH_HEAD 2>>"$WORK/git.log"; then
+  if { [ "$reset" = 1 ] && gitc reset --quiet --hard FETCH_HEAD 2>>"$WORK/git.log"; } \
+     || { [ "$reset" = 0 ] && gitc merge --quiet --ff-only FETCH_HEAD 2>>"$WORK/git.log"; }; then
     ok "최신 코드로 업데이트했어요 ($INSTALL_DIR)"
   else
     warn "업데이트를 합치지 못해 지금 코드로 계속할게요."
@@ -465,8 +471,13 @@ xt_candidate_teams() {
       done
     fi
     xt_keychain_teams | while read -r tid; do printf '%s\t?\tcert\t-\t-\t-\n' "$tid"; done
-  } | awk -F '\t' -v signed_in="$signed_in" '
-      $3 == "stale" { if ($6 == "IDEProvisioningTeamByIdentifier" && !sseen[$1]++) stale[++ns] = $0; next }
+  } | awk -F '\t' -v signed_in="$signed_in" -v live="$(printf '%s\n' "$live_keys" | head -1)" '
+      # 로그아웃한(다른) Apple ID의 팀은 쓰지 않는다. 그 팀의 키체인 인증서도 제외.
+      # 예외: 캐시 키와 로그인 계정 키의 형식이 아예 다르면(이메일↔UUID, Xcode가 형식을 바꾼 경우) 대비용으로 남김.
+      $3 == "stale" { bad[$1] = 1
+                      if ($6 == "IDEProvisioningTeamByIdentifier" && (($4 ~ /@/) != (live ~ /@/)) && !sseen[$1]++) stale[++ns] = $0
+                      next }
+      $3 == "cert" && ($1 in bad) { next }
       !seen[$1]++ { print; np++ }
       END { if (np == 0 && signed_in == 1) for (i = 1; i <= ns; i++) print stale[i] }
     '
@@ -616,7 +627,8 @@ pick_iphone() {
     [ "$pairing" = "paired" ] && rank=$((rank + 4))
     if [ "$tunnel" != "unavailable" ] && [ "$transport" != "-" ]; then rank=$((rank + 2)); fi
     [ "$transport" = "wired" ] && rank=$((rank + 1))
-    [ -n "$PREFERRED_IPHONE" ] && [ "$udid" = "$PREFERRED_IPHONE" ] && rank=$((rank + 20))
+    if [ -n "$PREFERRED_IPHONE" ] && [ "$udid" = "$PREFERRED_IPHONE" ] \
+       && [ "$tunnel" != unavailable ] && [ "$transport" != "-" ]; then rank=$((rank + 20)); fi
     if [ "$rank" -gt "$best" ]; then
       best=$rank; IPHONE_ID=$ident; IPHONE_UDID=$udid; IPHONE_NAME=$name; IPHONE_OS=$osver
       IPHONE_DEVMODE=$devmode; IPHONE_PAIR=$pairing; IPHONE_TUNNEL=$tunnel; IPHONE_TRANSPORT=$transport
@@ -670,6 +682,11 @@ select_iphone() {
     # 연결된 iPhone이 여러 대이고 아직 고른 적이 없으면 물어본다(엉뚱한 폰에 설치하지 않도록).
     phones="$(reachable_iphones)"
     n=$(printf '%s' "$phones" | grep -c . || true)
+    # 전에 고른 iPhone이 지금 연결돼 있지 않으면 그 선택은 잊는다(꺼진 폰을 기다리지 않도록).
+    if [ "$n" -ge 1 ] && [ -z "${SWINGWATCH_DEVICE:-}" ] \
+       && ! printf '%s\n' "$phones" | cut -f1 | grep -qxF "${PREFERRED_IPHONE:-none}"; then
+      PREFERRED_IPHONE=""
+    fi
     if [ "$n" -gt 1 ] && ! printf '%s\n' "$phones" | cut -f1 | grep -qxF "${PREFERRED_IPHONE:-none}"; then
       [ -n "$last" ] && echo
       info "연결된 iPhone이 여러 대예요. 스윙워치를 설치할 iPhone을 골라주세요:"
@@ -739,7 +756,8 @@ check_os_support() {
   dev_major="${2%%.*}"; sdk_major="${sdk%%.*}"
   case "$dev_major$sdk_major" in *[!0-9]*|'') return 0 ;; esac
   if [ "$dev_major" -gt "$sdk_major" ]; then
-    warn "$3 OS($2)가 이 Xcode(SDK $sdk)보다 새로워요. 설치가 실패하면 App Store에서 Xcode를 업데이트하세요."
+    OS_TOO_NEW="$3 $2 / Xcode SDK $sdk"
+    warn "$3 OS($2)가 이 Xcode(SDK $sdk)보다 새로워요. 설치가 실패하면 Xcode를 업데이트해야 해요."
   fi
 }
 
@@ -765,8 +783,12 @@ watch_state() {
 setup_watch() {
   step "Apple Watch 확인 (워치가 없으면 건너뛰어도 돼요)"
   if [ "${SWINGWATCH_SKIP_WATCH:-0}" = 1 ]; then info "워치 단계는 건너뛸게요."; return; fi
-  local state last="" start=$SECONDS nudged=0 line win
+  local state last="" start=$SECONDS nudged=0 line win ios_major
   win="$(devices_window_name)"
+  ios_major="${IPHONE_OS%%.*}"; case "$ios_major" in ''|*[!0-9]*) ios_major=0 ;; esac
+  if [ "$IPHONE_TRANSPORT" != wired ] && [ "$ios_major" -lt 27 ]; then
+    todo "워치에 설치하려면 iPhone을 케이블로 Mac에 연결해 두세요(iOS 26 이하는 꼭 필요해요)."
+  fi
   while :; do
     refresh_devices
     pick_watch || true
@@ -853,6 +875,12 @@ classify_build_error() {
 explain_build_error() {
   local kind="$1" f="$2" pane
   pane="$(accounts_pane_name)"
+  if [ -n "${OS_TOO_NEW:-}" ] && { [ "$kind" = destination ] || [ "$kind" = unknown ] || [ "$kind" = no_device ]; }; then
+    todo "기기 OS가 이 Xcode보다 새로워서 설치할 수 없어요 ($OS_TOO_NEW).
+App Store에서 Xcode를 업데이트하세요. Xcode 27은 Apple 실리콘 Mac + macOS 26.6 이상에서만
+설치돼요([시스템 설정] → [일반] → [소프트웨어 업데이트]로 macOS부터 올리세요)."
+    return
+  fi
   case "$kind" in
     appid_limit) todo "무료 Apple ID는 7일 동안 앱 ID를 10개까지만 만들 수 있어 한도에 걸렸어요.
 며칠 뒤 이 명령을 다시 실행해 주세요. (다음부터는 같은 ID를 재사용해서 더 쓰지 않아요)" ;;
@@ -867,6 +895,8 @@ Xcode → [Settings…] → [$pane] 에서 계정을 선택해 다시 로그인�
     keychain) todo "키체인(암호 보관함) 접근이 막혔어요. 다시 실행하고, 'codesign이 키에 접근하려고 합니다'
 창이 뜨면 Mac 로그인 암호를 입력하고 [항상 허용]을 눌러주세요." ;;
     disk) todo "Mac 저장 공간이 부족해요. 10GB 이상 비운 뒤 다시 실행하세요." ;;
+    platform) todo "Xcode가 iOS·watchOS 구성요소를 인식하지 못했어요.
+Mac을 재시동하거나, Xcode → [Settings…] → [Components]에서 iOS·watchOS [Get] 후 다시 실행하세요." ;;
     provisioning|bundle_structure) todo "서명용 프로필을 만들지 못했어요. iPhone 연결·잠금 해제 상태와
 Xcode의 Apple ID 로그인([Settings…] → [$pane])을 확인한 뒤 다시 실행하세요." ;;
     *) info "마지막 오류 내용:"
@@ -965,6 +995,9 @@ download_platforms_foreground() {
   PLATFORMS_DOWNLOADED=1
   local p list="$*"
   [ -n "$list" ] || list="$(missing_platforms)"
+  # simctl엔 있는데 Xcode가 인식하지 못하는 경우: 빌드 기록에 적힌 플랫폼을 다시 받는다.
+  [ -n "$list" ] || list="$(grep -oE '(iOS|watchOS) [0-9.]+ is not installed' "$WORK/last-build.log" 2>/dev/null \
+    | cut -d' ' -f1 | sort -u | tr '\n' ' ')"
   [ -n "$list" ] || return 0
   for p in $list; do
     run_with_progress "$p 구성요소 내려받는 중(수 GB)" "$WORK/download-$p.log" xcodebuild -downloadPlatform "$p" || true
@@ -1020,6 +1053,12 @@ build_apps() {
             wait_device_busy; attempts=$((attempts - 1)); continue
           fi
         fi
+        if [ "$WATCH_READY" = 1 ] && [ "$BUILD_ERR" = no_device ] && [ "${NO_DEVICE_RETRIED:-0}" = 0 ]; then
+          # 새 무료 팀의 첫 빌드: 기기 등록이 막 끝나 프로필이 아직 없을 수 있다 → 한 번 더.
+          NO_DEVICE_RETRIED=1
+          info "기기를 Apple 계정에 등록하는 중이에요. 한 번 더 빌드할게요."
+          attempts=$((attempts - 1)); continue
+        fi
         if [ "$WATCH_READY" = 1 ] && [ "$BUILD_ERR" = destination ] && [ "$WATCH_RETRIED" = 0 ]; then
           # 워치가 잠들었을 가능성이 가장 크다 → 한 번 깨우고 다시.
           WATCH_RETRIED=1
@@ -1040,7 +1079,15 @@ build_apps() {
     if signed_build "$IOS_SCHEME" "platform=iOS,id=$IPHONE_UDID" "iPhone 앱 빌드 중" ios; then
       break
     fi
-    if [ "$BUILD_ERR" = busy ]; then wait_device_busy; attempts=$((attempts - 1)); continue; fi
+    if [ "$BUILD_ERR" = busy ]; then
+      # 워치를 설치하지 않는데 iPhone이 '워치 준비 중'으로 묶여 있으면: 전에 등록된 iPhone이면
+      # 기기를 지정하지 않는 빌드로도 서명된다(팀 프로필에 이미 들어 있으므로).
+      if [ "$WATCH_READY" != 1 ] && [ "$BUSY_WAITS" -ge 2 ] && [ "${GENERIC_TRIED:-0}" = 0 ]; then
+        GENERIC_TRIED=1
+        if signed_build "$IOS_SCHEME" "generic/platform=iOS" "iPhone 앱 빌드 중" ios; then break; fi
+      fi
+      wait_device_busy; attempts=$((attempts - 1)); continue
+    fi
     handle_build_failure || return 1
   done
 
@@ -1081,7 +1128,7 @@ BUSY_WAITS=0
 wait_device_busy() {
   BUSY_WAITS=$((BUSY_WAITS + 1))
   if [ $BUSY_WAITS -eq 1 ]; then
-    info "Xcode가 기기를 개발용으로 준비하는 중이에요(처음 한 번). 워치는 오래 걸릴 수 있어요."
+    info "Xcode가 기기를 개발용으로 준비하는 중이에요(처음 한 번). 워치가 있으면 오래 걸릴 수 있어요."
     info "워치 화면을 켜둔 채(충전기 위 권장) 기다려 주세요. 자동으로 다시 시도해요."
   elif [ $((BUSY_WAITS % 4)) -eq 0 ]; then
     info "아직 준비 중이에요… ($((BUSY_WAITS / 2))분째)"
@@ -1093,6 +1140,12 @@ wait_device_busy() {
 # 실패 원인에 따라 자동 복구를 시도한다. 0 = 다시 빌드, 1 = 포기
 handle_build_failure() {
   case "$BUILD_ERR" in
+    no_device)
+      if [ "${NO_DEVICE_RETRIED:-0}" = 0 ]; then
+        NO_DEVICE_RETRIED=1
+        info "기기를 Apple 계정에 등록하는 중이에요. 한 번 더 빌드할게요."
+        return 0
+      fi ;;
     db_locked)
       # 지난번에 멈춘 빌드가 남아 있다 → 이 설치 폴더의 빌드만 정리하고 다시.
       if [ "${DB_UNLOCKED:-0}" = 0 ]; then
