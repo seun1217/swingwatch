@@ -259,11 +259,15 @@ prepare_xcode() {
   fi
   # 이 스크립트 안에서만 이 Xcode를 쓴다(xcode-select 설정은 건드리지 않아 sudo 불필요).
   export DEVELOPER_DIR="$XCODE_APP/Contents/Developer"
+  # 버전은 앱 번들에서 읽는다(라이선스 동의 전에는 xcodebuild -version도 거부된다).
   local version
-  version="$(xcodebuild -version 2>/dev/null | head -1)"
-  XCODE_MAJOR="$(printf '%s' "$version" | awk '{ split($2, v, "."); print v[1] + 0 }')"
-  ok "${version:-Xcode} ($XCODE_APP)"
-  [ "$XCODE_MAJOR" -ge 15 ] || die "Xcode 15 이상이 필요해요. App Store에서 Xcode를 업데이트하세요."
+  version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$XCODE_APP/Contents/Info.plist" 2>/dev/null)"
+  XCODE_MAJOR="${version%%.*}"
+  case "$XCODE_MAJOR" in ''|*[!0-9]*) XCODE_MAJOR=0 ;; esac
+  ok "Xcode ${version:-?} ($XCODE_APP)"
+  if [ "$XCODE_MAJOR" -gt 0 ] && [ "$XCODE_MAJOR" -lt 15 ]; then
+    die "Xcode 15 이상이 필요해요. App Store에서 Xcode를 업데이트하세요."
+  fi
 
   # 라이선스 동의 / 첫 실행 구성요소 — 필요할 때만 관리자 암호를 묻는다.
   local need_license=0 need_first=0
@@ -669,11 +673,12 @@ devices_window_name() {
   if [ "$XCODE_MAJOR" -ge 27 ]; then echo "[Window] → [Device Hub]"; else echo "[Window] → [Devices and Simulators] (단축키 ⇧⌘2)"; fi
 }
 
+# 연결이 안 되는 기기는 개발자 모드가 '꺼짐'으로 보고되므로(실제 값을 못 읽음) 먼저 연결 상태를 본다.
 watch_state() {
   if [ -z "$WATCH_ID" ]; then echo none
   elif [ "$WATCH_PAIR" != "paired" ]; then echo unpaired
-  elif [ "$WATCH_DEVMODE" != "enabled" ]; then echo devmode
   elif [ "$WATCH_TUNNEL" = "unavailable" ] || [ "$WATCH_TUNNEL" = "-" ]; then echo offline
+  elif [ "$WATCH_DEVMODE" != "enabled" ]; then echo devmode
   else echo ready
   fi
 }
@@ -719,7 +724,9 @@ setup_watch() {
 메뉴가 안 보이면 Xcode의 $win 에서 워치를 클릭한 뒤 워치를 재시동해 보세요.
 (건너뛰려면 s + Enter)" ;;
         offline) todo "워치에 연결이 안 돼요. 워치 화면을 깨워 잠금을 풀고 Mac 가까이 두세요.
-충전기에 올려두면 가장 안정적이에요. (건너뛰려면 s + Enter)" ;;
+충전기에 올려두면 가장 안정적이에요. Mac의 Wi-Fi·블루투스도 켜주세요.
+워치 개발자 모드를 아직 한 번도 안 켰다면: 워치 [설정] → [개인정보 보호 및 보안] → [개발자 모드]
+(건너뛰려면 s + Enter)" ;;
       esac
       printf '    기다리는 중'
       last="$state"
@@ -751,7 +758,7 @@ classify_build_error() {
   elif grep -qiE "No Accounts|No Account for Team|missing Xcode-Token|could not sign in|login details for account|Unable to log in with account|session has expired" "$f"; then echo account
   elif grep -qiE "requires a development team" "$f"; then echo no_team
   elif grep -qiE "Your team has no devices from which to generate a provisioning profile" "$f"; then echo no_device
-  elif grep -qiE "Device is busy|Preparing the watch for development|is preparing" "$f"; then echo busy
+  elif grep -qiE "is busy|Preparing the watch for development|Copying shared cache symbols|is preparing" "$f"; then echo busy
   elif grep -qiE "database is locked|two concurrent builds|concurrent builds running" "$f"; then echo db_locked
   elif grep -qiE "Unable to find a destination matching the provided destination specifier|needs to connect to determine its availability|Timed out waiting for" "$f"; then echo destination
   elif grep -qiE "Developer Mode (is )?disabled|enable Developer Mode" "$f"; then echo devmode
@@ -905,6 +912,8 @@ signed_build() {
 build_apps() {
   step "앱 빌드·서명 (처음엔 5~15분)"
   BUNDLE_PREFIX="$(config_get bundle_prefix)"
+  # 앱 ID는 그것을 등록한 팀 것이다. Apple ID(팀)가 바뀌었으면 기본값부터 다시 시작.
+  if [ -n "$BUNDLE_PREFIX" ] && [ "$(config_get bundle_team)" != "$TEAM_ID" ]; then BUNDLE_PREFIX=""; fi
   [ -n "$BUNDLE_PREFIX" ] || BUNDLE_PREFIX="$DEFAULT_BUNDLE_PREFIX"
   info "빌드 중 'codesign이 키체인에 접근하려고 합니다' 창이 뜨면
       Mac 로그인 암호를 입력하고 [항상 허용]을 눌러주세요."
@@ -919,8 +928,16 @@ build_apps() {
     # 워치를 먼저: 워치를 대상으로 빌드해야 무료 팀 프로필에 워치가 등록된다.
     if [ "$WATCH_READY" = 1 ]; then
       if ! signed_build "$WATCH_SCHEME" "platform=watchOS,id=$WATCH_UDID" "워치 앱 빌드 중" watch; then
-        if [ "$BUILD_ERR" = busy ]; then wait_device_busy; attempts=$((attempts - 1)); continue; fi
-        case "$BUILD_ERR" in
+        if [ "$BUILD_ERR" = busy ]; then
+          if [ $BUSY_WAITS -ge 40 ]; then
+            # 워치 준비가 20분 넘게 걸리면 iPhone부터 설치하고 워치는 다음 실행으로 미룬다.
+            warn "워치 준비가 오래 걸려서 iPhone 앱부터 설치할게요. 워치는 나중에 이 명령을 다시 실행하면 돼요."
+            WATCH_READY=0
+          else
+            wait_device_busy; attempts=$((attempts - 1)); continue
+          fi
+        fi
+        [ "$WATCH_READY" = 1 ] && case "$BUILD_ERR" in
           destination|devmode|no_device|provisioning|unknown)
             warn "워치용 빌드에 실패해서 워치는 건너뛰고 iPhone 앱부터 설치할게요."
             explain_build_error "$BUILD_ERR" "$WORK/last-build.log"
@@ -938,6 +955,7 @@ build_apps() {
   done
 
   config_set bundle_prefix "$BUNDLE_PREFIX"
+  config_set bundle_team "$TEAM_ID"
   APP_PATH="$DERIVED/Build/Products/Debug-iphoneos/$PROJECT_NAME.app"
   WATCH_APP_PATH="$DERIVED/Build/Products/Debug-watchos/$WATCH_SCHEME.app"
   [ -d "$APP_PATH" ] || die "빌드는 끝났는데 앱 파일을 찾지 못했어요: $APP_PATH"
@@ -948,12 +966,18 @@ build_apps() {
   fi
 }
 
-# 워치를 처음 개발용으로 준비하는 동안 Xcode가 기기를 "busy"로 표시한다. 잠시 기다리면 풀린다.
+# 기기(특히 워치)를 처음 개발용으로 준비하는 동안 Xcode는 기기를 "busy"로 표시한다.
+# 기다리면 풀린다(워치는 길게는 1시간 이상). 재시동하면 준비가 처음부터 다시 시작되니 권하지 않는다.
 BUSY_WAITS=0
 wait_device_busy() {
   BUSY_WAITS=$((BUSY_WAITS + 1))
-  [ $BUSY_WAITS -gt 30 ] && die "기기 준비가 15분 넘게 끝나지 않았어요. iPhone·워치를 재시동한 뒤 다시 실행하세요."
-  [ $BUSY_WAITS -eq 1 ] && info "Xcode가 기기를 개발용으로 준비하는 중이에요(처음 한 번, 몇 분). 워치 화면을 켜둔 채 기다릴게요."
+  if [ $BUSY_WAITS -eq 1 ]; then
+    info "Xcode가 기기를 개발용으로 준비하는 중이에요(처음 한 번). 워치는 오래 걸릴 수 있어요."
+    info "워치 화면을 켜둔 채(충전기 위 권장) 기다려 주세요. 자동으로 다시 시도해요."
+  elif [ $((BUSY_WAITS % 4)) -eq 0 ]; then
+    info "아직 준비 중이에요… ($((BUSY_WAITS / 2))분째)"
+  fi
+  [ $BUSY_WAITS -gt 180 ] && die "기기 준비가 90분 넘게 끝나지 않았어요. 워치를 충전기에 올려둔 채 다시 실행해 보세요."
   sleep 30
 }
 
@@ -969,9 +993,11 @@ handle_build_failure() {
         return 0
       fi ;;
     bundle_taken)
-      if [ "$BUNDLE_PREFIX" = "$DEFAULT_BUNDLE_PREFIX" ]; then
-        # 다른 팀이 이미 쓰는 ID → 내 팀 전용 ID(팀 ID 기반이라 매번 같음)로 바꿔 다시.
-        BUNDLE_PREFIX="com.swingwatch.t$(printf '%s' "$TEAM_ID" | tr '[:upper:]' '[:lower:]')"
+      # 다른 팀이 이미 쓰는 ID → 내 팀 전용 ID(팀 ID 기반이라 매번 같음)로 바꿔 다시.
+      local team_prefix
+      team_prefix="com.swingwatch.t$(printf '%s' "$TEAM_ID" | tr '[:upper:]' '[:lower:]')"
+      if [ "$BUNDLE_PREFIX" != "$team_prefix" ]; then
+        BUNDLE_PREFIX="$team_prefix"
         warn "앱 ID가 이미 다른 사람 것이라, 내 전용 ID($BUNDLE_PREFIX)로 바꿔 다시 빌드할게요."
         return 0
       fi ;;
@@ -1005,7 +1031,7 @@ classify_devicectl() {
   elif printf '%s' "$text" | grep -qiE "maximum number of (installed )?apps"; then echo applimit
   elif printf '%s' "$text" | grep -qiE "ApplicationVerificationFailed|profile"; then echo profile
   elif printf '%s' "$text" | grep -qiE "must be paired|not paired"; then echo unpaired
-  elif printf '%s' "$text" | grep -qiE "CoreDeviceError|0xFA0|timed out|connection was invalidated|could not be established|Transport error"; then echo transient
+  elif printf '%s' "$text" | grep -qiE "0xFA0|timed out|connection was invalidated|could not be established|Transport error|RemotePairingError"; then echo transient
   else echo other
   fi
 }
@@ -1039,7 +1065,10 @@ install_iphone() {
       *) grep -iE "error|fail" "$WORK/install-iphone.log" | tail -5 | sed 's/^/      /'
          die "iPhone에 설치하지 못했어요." ;;
     esac
-    [ $tries -ge 5 ] && die "iPhone에 설치하지 못했어요."
+    if [ $tries -ge 5 ]; then
+      grep -iE "error|fail" "$WORK/install-iphone.log" | tail -5 | sed 's/^/      /'
+      die "iPhone에 설치하지 못했어요."
+    fi
   done
   ok "설치 완료! iPhone 홈 화면에 '스윙워치'가 생겼어요"
 }
@@ -1113,20 +1142,22 @@ install_watch() {
       locked) todo "워치 화면을 깨워 잠금을 풀어주세요."; press_enter ;;
       applimit) todo "무료 Apple ID로 설치할 수 있는 앱 수를 넘었어요.
 워치(또는 iPhone)에서 예전에 설치한 개발용 앱을 지운 뒤 계속하세요."; press_enter ;;
-      profile) warn "워치 앱 서명에 이 워치가 없어요. 잠시 뒤 이 명령을 다시 실행하면 워치가 등록돼요."; break ;;
+      profile) warn "워치 앱 서명에 이 워치가 아직 없어요. 잠시 뒤 이 명령을 다시 실행하면 워치가 등록돼요."
+               WATCH_READY=0; return ;;
       *) warn "워치 연결이 불안정해요. 다시 시도할게요… ($tries/4)"
          [ $tries -eq 2 ] && info "계속 실패하면: 워치를 충전기에 올리고, iPhone [설정] → [Bluetooth]를
       잠시 끄면 워치가 Wi-Fi로 연결돼요(설치 후 다시 켜세요)."
          sleep 10 ;;
     esac
     if [ $tries -ge 4 ]; then
+      WATCH_READY=0
       warn "워치에 직접 설치하지 못했어요."
       todo "iPhone의 [Watch] 앱 → [나의 시계] → 아래로 내려 [사용 가능한 앱] →
 스윙워치 [설치] 를 시도해 보세요. 안 되면 워치 화면을 켠 채 이 명령을 다시 실행하세요."
       return
     fi
   done
-  if watch_has_app; then ok "워치에 스윙워치가 설치됐어요!"; else ok "워치 설치 명령이 끝났어요."; fi
+  if watch_has_app; then ok "워치에 스윙워치가 설치됐어요!"; else ok "워치에 설치했어요."; fi
   if xcrun devicectl device process launch --device "$WATCH_ID" --terminate-existing \
       "$BUNDLE_PREFIX.swingwatch.watchkitapp" >"$WORK/watch-launch.log" 2>&1; then
     ok "워치에서 스윙워치를 열었어요."

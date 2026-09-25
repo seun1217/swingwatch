@@ -36,7 +36,7 @@ load devicectl-v3-iphone-watch.json
 check "v3: 기기 4대 파싱" "$(grep -c . "$WORK/devices.tsv")" "4"
 pick_iphone; check "v3: 유선 연결된 iPhone 선택" "$IPHONE_TRANSPORT/$IPHONE_DEVMODE/$IPHONE_OS" "wired/enabled/26.0"
 check "v3: iPhone 준비 상태" "$(iphone_state)" "ready"
-pick_watch; check "v3: 워치 발견(개발자 모드 꺼짐)" "$(watch_state)" "devmode"
+pick_watch; check "v3: 연결 안 된 워치는 '오프라인'(개발자 모드 값은 믿지 않음)" "$(watch_state)" "offline"
 
 load devicectl-v3-iphone.json
 check "v3: 미페어링 항목도 행으로 나옴" "$(grep -c . "$WORK/devices.tsv")" "4"
@@ -194,6 +194,11 @@ FAKE_XCODE="$T/Xcode.app"
 mkdir -p "$FAKE_XCODE/Contents/Developer/usr/bin"
 printf '#!/bin/sh\nexit 0\n' > "$FAKE_XCODE/Contents/Developer/usr/bin/xcodebuild"
 chmod +x "$FAKE_XCODE/Contents/Developer/usr/bin/xcodebuild"
+cat > "$FAKE_XCODE/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>CFBundleShortVersionString</key><string>26.6</string></dict></plist>
+PLIST
 # 가짜 원격 저장소(설치 스크립트가 확인하는 프로젝트 파일만). CI의 얕은 체크아웃에서도 되도록
 # 현재 저장소를 push하지 않고 새로 만든다.
 git init -q --bare "$T/remote.git"
@@ -269,6 +274,12 @@ xcrun() {
     "devicectl device info details"*) return 1 ;;
     "devicectl device info ddiServices"*) return 0 ;;
     "devicectl manage pair"*) return 0 ;;
+    "devicectl device install app"*66666666-7777-8888-9999-AAAAAAAAAAAA*)
+      if [ "${FAKE_WATCH_PROFILE_FAIL:-0}" = 1 ]; then
+        echo "ERROR: Failed to install the app on the device. (com.apple.dt.CoreDeviceError error 3002) ApplicationVerificationFailed: The provisioning profile does not include this device." >&2
+        return 1
+      fi
+      echo "App installed:"; return 0 ;;
     "devicectl device install app"*) echo "App installed:"; return 0 ;;
     "devicectl device info apps"*) echo '{"result":{"apps":[{"bundleIdentifier":"x"}]}}' > "$json" ;;
     "devicectl device process launch"*)
@@ -329,6 +340,19 @@ rm -f "$T/busy-done"; FAKE_BUSY=1
 check "흐름 4: 기기 준비 중이어도 자동으로 기다려 설치 완료" "$(run_flow "$T/flow4.out")" "0"
 contains "흐름 4: 준비 중 안내" "$T/flow4.out" "개발용으로 준비하는 중이에요"
 FAKE_BUSY=0
+
+# 워치 설치가 프로필 문제로 실패 → 성공이라고 말하지 않고, 워치 안내도 하지 않음
+FAKE_WATCH_PROFILE_FAIL=1
+check "흐름 5: 워치 설치 실패여도 iPhone 설치는 완료" "$(run_flow "$T/flow5.out")" "0"
+contains "흐름 5: 워치 프로필 문제 안내" "$T/flow5.out" "워치 앱 서명에 이 워치가 아직 없어요"
+check "흐름 5: 거짓 성공 메시지 없음" "$(grep -c '워치에 설치했어요\|워치에 스윙워치가 설치됐어요\|워치에서도 스윙워치를 열어두면' "$T/flow5.out")" "0"
+FAKE_WATCH_PROFILE_FAIL=0
+
+# Apple ID(팀)가 바뀌면 예전 팀의 앱 ID를 쓰지 않고 기본값부터 다시
+printf 'team=OLDTEAM123\nbundle_prefix=com.swingwatch.toldteam123\nbundle_team=OLDTEAM123\n' > "$T/SwingWatch/.install/config"
+check "흐름 6: 팀이 바뀐 재실행도 설치 완료" "$(run_flow "$T/flow6.out")" "0"
+contains "흐름 6: 새 팀에선 기본 앱 ID부터" "$T/calls.log" "BUNDLE_ID_PREFIX=com.seun1217 build"
+check "흐름 6: 새 팀 기록" "$(sed -n 's/^bundle_team=//p' "$T/SwingWatch/.install/config")" "Y8QK9BKTCW"
 
 echo
 echo "통과 $PASS, 실패 $FAIL"
