@@ -208,7 +208,8 @@ PLIST
 # 현재 저장소를 push하지 않고 새로 만든다.
 git init -q --bare "$T/remote.git"
 mkdir -p "$T/src/SwingWatch.xcodeproj"
-echo "// fake" > "$T/src/SwingWatch.xcodeproj/project.pbxproj"
+printf '\t\t\t\tBUNDLE_ID_PREFIX = com.seun1217;\n' > "$T/src/SwingWatch.xcodeproj/project.pbxproj"
+printf '.install/\n.build/\n' > "$T/src/.gitignore"
 ( cd "$T/src" && git init -q && git add -A \
   && git -c user.name=selftest -c user.email=selftest@example.com commit -q -m init \
   && git push -q "$T/remote.git" HEAD:refs/heads/main ) \
@@ -261,6 +262,8 @@ xcodebuild() {
   else
     mkdir -p "$dd/Build/Products/Debug-iphoneos/SwingWatch.app/Watch/SwingWatchWatch.app"
   fi
+  echo 'Signing Identity: "Apple Development: tester@example.com (AB12CD34EF)"'
+  echo "cd /Users/honggildong/SwingWatch"
   echo '** BUILD SUCCEEDED **'
 }
 xcrun() {
@@ -323,6 +326,9 @@ contains "흐름 1: 찾은 팀으로 서명" "$T/calls.log" "DEVELOPMENT_TEAM=Y8
 contains "흐름 1: 신뢰 안내 표시" "$T/flow1.out" "VPN 및 기기 관리"
 contains "흐름 1: 워치에 직접 설치" "$T/calls.log" "devicectl device install app --device 66666666-7777-8888-9999-AAAAAAAAAAAA"
 contains "흐름 1: 워치 설치 확인" "$T/flow1.out" "워치에 스윙워치가 설치됐어요"
+check "흐름 1: 기록에 이메일 없음" "$(grep -c 'tester@example.com' "$T/SwingWatch/.install/install.log")" "0"
+contains "흐름 1: 이메일은 가려서 기록" "$T/SwingWatch/.install/install.log" "Apple Development: <이메일>"
+check "흐름 1: 기록에 Mac 사용자 이름 없음" "$(grep -c 'honggildong' "$T/SwingWatch/.install/install.log")" "0"
 check "흐름 1: 설정 저장(팀)" "$(sed -n 's/^team=//p' "$T/SwingWatch/.install/config")" "Y8QK9BKTCW"
 check "흐름 1: sudo 호출 없음" "$(grep -c '^sudo' "$T/calls.log")" "0"
 
@@ -367,6 +373,24 @@ check "흐름 7: 선택 저장" "$(sed -n 's/^iphone=//p' "$T/SwingWatch/.instal
 check "흐름 8: 다시 실행하면 묻지 않음" "$(run_flow "$T/flow8.out"; grep -c '여러 대예요' "$T/flow8.out")" "0
 0"
 FAKE_DEVICES=""
+
+# 사용자가 ~/SwingWatch 에서 직접 커밋한 변경은 업데이트 때 지우지 않는다
+( cd "$T/SwingWatch" && echo "tuned" > MyTuning.txt && git add MyTuning.txt \
+  && git -c user.name=u -c user.email=u@example.com commit -q -m "my tuning" )
+MINE="$(git -C "$T/SwingWatch" rev-parse HEAD)"
+check "흐름 9: 로컬 커밋이 있어도 설치 완료" "$(run_flow "$T/flow9.out")" "0"
+contains "흐름 9: 업데이트 건너뜀 안내" "$T/flow9.out" "직접 저장(커밋)한 변경이 있어서"
+check "흐름 9: 로컬 커밋 보존" "$(git -C "$T/SwingWatch" rev-parse HEAD)" "$MINE"
+( cd "$T/SwingWatch" && git reset -q --hard HEAD~1 && rm -f MyTuning.txt )
+
+# Xcode에서 BUNDLE_ID_PREFIX를 바꿨다면: 백업하고 되돌리되 그 앱 ID는 이어받는다
+rm -f "$T/SwingWatch/.install/config"
+sed -i.bak 's/com.seun1217/com.mine/' "$T/SwingWatch/SwingWatch.xcodeproj/project.pbxproj" && rm -f "$T/SwingWatch/SwingWatch.xcodeproj/project.pbxproj.bak"
+check "흐름 10: 프로젝트 설정을 바꿨어도 설치 완료" "$(run_flow "$T/flow10.out")" "0"
+contains "흐름 10: 백업 후 되돌림 안내" "$T/flow10.out" "백업해 두고 되돌렸어요"
+check "흐름 10: 백업 파일 생성" "$(find "$T/SwingWatch/.install" -name 'xcodeproj-*.patch' | grep -c .)" "1"
+contains "흐름 10: 직접 정한 앱 ID로 빌드" "$T/calls.log" "BUNDLE_ID_PREFIX=com.mine build"
+check "흐름 10: 프로젝트 파일은 원래대로" "$(git -C "$T/SwingWatch" status --porcelain -- SwingWatch.xcodeproj | grep -c .)" "0"
 
 echo
 echo "통과 $PASS, 실패 $FAIL"

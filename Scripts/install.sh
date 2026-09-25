@@ -52,7 +52,7 @@ IPHONE_PAIR=""; IPHONE_TUNNEL=""; IPHONE_TRANSPORT=""
 WATCH_ID=""; WATCH_UDID=""; WATCH_NAME=""; WATCH_OS=""; WATCH_DEVMODE=""
 WATCH_PAIR=""; WATCH_TUNNEL=""; WATCH_READY=0
 DERIVED=""; APP_PATH=""; WATCH_APP_PATH=""
-BUILD_ERR=""; PLATFORMS_DOWNLOADED=0; POLL_REPLY=""; PREFERRED_IPHONE=""
+BUILD_ERR=""; PLATFORMS_DOWNLOADED=0; POLL_REPLY=""; PREFERRED_IPHONE=""; LAST_DEVICES_LOG=""
 
 # ----------------------------------------------------------------------------
 # 화면 출력
@@ -65,7 +65,12 @@ else
 fi
 
 STEP_NO=0
-log()  { [ -n "$LOG_FILE" ] && printf '%s %s\n' "$(date '+%H:%M:%S')" "$*" >> "$LOG_FILE" 2>/dev/null; return 0; }
+# 기록 파일에는 Apple ID 이메일과 Mac 사용자 이름을 가려서 남긴다(도움 요청 때 보내도 되도록).
+redact() {
+  sed -E -e 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/<이메일>/g' \
+         -e 's#/Users/[^/ "]+#/Users/<사용자>#g'
+}
+log()  { [ -n "$LOG_FILE" ] && printf '%s %s\n' "$(date '+%H:%M:%S')" "$*" | redact >> "$LOG_FILE" 2>/dev/null; return 0; }
 step() { STEP_NO=$((STEP_NO + 1)); printf '\n%s[%d] %s%s\n' "$C_B$C_BLU" "$STEP_NO" "$1" "$C_0"; log "=== STEP $STEP_NO: $1"; }
 info() { printf '    %s\n' "$1"; log "INFO: $1"; }
 ok()   { printf '    %s✓ %s%s\n' "$C_GRN" "$1" "$C_0"; log "OK: $1"; }
@@ -81,6 +86,7 @@ die() {
   if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
     printf '\n    자세한 기록: %s\n' "$LOG_FILE"
     printf '    이 파일을 개발 도우미(Claude)에게 보내주시면 원인을 찾아드려요.\n'
+    printf '    (이메일·Mac 사용자 이름은 가려서 저장했지만 기기 정보가 있으니 공개된 곳엔 올리지 마세요)\n'
   fi
   printf '    문제를 해결한 뒤 같은 명령을 다시 실행하면 이어서 진행됩니다.\n\n'
   exit 1
@@ -154,7 +160,7 @@ run_with_progress() {
   wait "$pid"; rc=$?
   BG_PID=""
   echo
-  [ -n "$LOG_FILE" ] && { echo "----- $* (exit $rc)"; cat "$out"; } >> "$LOG_FILE" 2>/dev/null
+  [ -n "$LOG_FILE" ] && { echo "----- $* (exit $rc)"; cat "$out"; } | redact >> "$LOG_FILE" 2>/dev/null
   return $rc
 }
 
@@ -285,7 +291,12 @@ prepare_xcode() {
       sudo -v || die "관리자 암호 확인에 실패했어요."   # 백그라운드 작업은 암호를 물을 수 없으니 미리 인증
       run_with_progress "Xcode 구성요소 설치 중(몇 분)" "$WORK/firstlaunch.log" \
         sudo "$DEVELOPER_DIR/usr/bin/xcodebuild" -runFirstLaunch \
-        || die "Xcode 구성요소 설치에 실패했어요. Xcode를 직접 한 번 실행해 안내를 따른 뒤 다시 시도하세요."
+        || {
+          tail -15 "$WORK/firstlaunch.log" | sed 's/^/      /'
+          mkdir -p "$HOME/Library/Logs" && redact < "$WORK/firstlaunch.log" > "$HOME/Library/Logs/swingwatch-firstlaunch.log"
+          die "Xcode 구성요소 설치에 실패했어요. Xcode를 직접 한 번 실행해 안내를 따른 뒤 다시 시도하세요.
+    (기록: ~/Library/Logs/swingwatch-firstlaunch.log)"
+        }
       ok "Xcode 구성요소 설치"
     fi
   fi
@@ -297,21 +308,7 @@ prepare_xcode() {
 fetch_code() {
   step "스윙워치 코드 내려받기"
   if [ -d "$INSTALL_DIR/.git" ]; then
-    # Xcode에서 팀만 고른 경우 등 프로젝트 파일 변경은 되돌리고, 코드 변경이 있으면 건너뛴다.
-    local dirty
-    dirty="$(git -C "$INSTALL_DIR" status --porcelain --untracked-files=no 2>/dev/null \
-      | awk '{print $2}' | grep -v "^$PROJECT_NAME.xcodeproj/" || true)"
-    if [ -n "$dirty" ]; then
-      warn "직접 고친 코드가 있어서 업데이트는 건너뛰고 지금 코드로 설치할게요."
-    else
-      git -C "$INSTALL_DIR" checkout --quiet -- "$PROJECT_NAME.xcodeproj" 2>/dev/null || true
-      if git -C "$INSTALL_DIR" fetch --quiet --depth 1 origin "$BRANCH" 2>>"$WORK/git.log" \
-        && git -C "$INSTALL_DIR" checkout --quiet -B "$BRANCH" FETCH_HEAD 2>>"$WORK/git.log"; then
-        ok "최신 코드로 업데이트했어요 ($INSTALL_DIR)"
-      else
-        warn "업데이트를 받지 못했어요(인터넷 확인). 기존 코드로 계속할게요."
-      fi
-    fi
+    update_code
   else
     if [ -e "$INSTALL_DIR" ]; then
       local backup
@@ -319,7 +316,7 @@ fetch_code() {
       mv "$INSTALL_DIR" "$backup" || die "$INSTALL_DIR 폴더를 정리하지 못했어요."
       warn "원래 있던 $INSTALL_DIR 폴더는 $backup 으로 옮겨뒀어요."
     fi
-    git clone --quiet --depth 1 --branch "$BRANCH" "$REPO_URL" "$INSTALL_DIR" 2>>"$WORK/git.log" \
+    git clone --quiet --branch "$BRANCH" "$REPO_URL" "$INSTALL_DIR" 2>>"$WORK/git.log" \
       || { cat "$WORK/git.log" >&2; die "코드를 내려받지 못했어요. 인터넷 연결을 확인하세요."; }
     ok "코드를 내려받았어요 ($INSTALL_DIR)"
   fi
@@ -328,9 +325,51 @@ fetch_code() {
   LOG_FILE="$STATE_DIR/install.log"
   : > "$LOG_FILE"
   log "installer: branch=$BRANCH xcode=$XCODE_APP major=$XCODE_MAJOR macOS=$(sw_vers -productVersion 2>/dev/null) commit=$(git -C "$INSTALL_DIR" rev-parse --short HEAD 2>/dev/null)"
-  cat "$WORK"/*.log >> "$LOG_FILE" 2>/dev/null || true
+  cat "$WORK"/*.log 2>/dev/null | redact >> "$LOG_FILE" || true
   [ -f "$INSTALL_DIR/$PROJECT_NAME.xcodeproj/project.pbxproj" ] || die "내려받은 코드에 Xcode 프로젝트가 없어요."
   DERIVED="$INSTALL_DIR/.build"
+}
+
+gitc() { git -C "$INSTALL_DIR" "$@"; }
+
+# 이미 받아둔 코드를 최신으로. 사용자가 고친 코드·커밋은 절대 버리지 않는다.
+update_code() {
+  local edits branch ahead patch prefix
+  mkdir -p "$STATE_DIR"
+  # 직접 고친 코드(추적 파일 변경 또는 새 파일). Xcode 프로젝트 파일 변경은 따로 다룬다.
+  edits="$(gitc status --porcelain 2>/dev/null | awk '{print $NF}' | grep -v "^$PROJECT_NAME.xcodeproj/" || true)"
+  branch="$(gitc symbolic-ref --short -q HEAD 2>/dev/null || true)"
+  if [ -n "$edits" ] || [ "$branch" != "$BRANCH" ]; then
+    warn "직접 고친 코드가 있어서 업데이트는 건너뛰고 지금 코드로 설치할게요."
+    return 0
+  fi
+  # 예전 설치 도우미가 얕게(최근 커밋만) 받아둔 경우 전체 기록을 받아야 안전하게 합칠 수 있다.
+  if [ "$(gitc rev-parse --is-shallow-repository 2>/dev/null)" = true ]; then
+    gitc fetch --quiet --unshallow origin 2>>"$WORK/git.log" || true
+  fi
+  if ! gitc fetch --quiet origin "$BRANCH" 2>>"$WORK/git.log"; then
+    warn "업데이트를 받지 못했어요(인터넷 확인). 지금 코드로 계속할게요."
+    return 0
+  fi
+  ahead="$(gitc rev-list --count FETCH_HEAD..HEAD 2>/dev/null || echo 1)"
+  if [ "$ahead" != 0 ]; then
+    warn "직접 저장(커밋)한 변경이 있어서 업데이트는 건너뛰고 지금 코드로 설치할게요."
+    return 0
+  fi
+  # Xcode에서 바꾼 프로젝트 설정(팀 선택 등)은 백업해 두고 되돌린다. 직접 정한 앱 ID는 이어받는다.
+  if ! gitc diff --quiet -- "$PROJECT_NAME.xcodeproj" 2>/dev/null; then
+    patch="$STATE_DIR/xcodeproj-$(date +%Y%m%d-%H%M%S).patch"
+    gitc diff -- "$PROJECT_NAME.xcodeproj" > "$patch" 2>/dev/null
+    prefix="$(sed -n 's/^+[[:space:]]*BUNDLE_ID_PREFIX = \([^;]*\);.*/\1/p' "$patch" | tr -d '"' | head -1)"
+    [ -n "$prefix" ] && config_set user_bundle_prefix "$prefix"
+    gitc checkout --quiet -- "$PROJECT_NAME.xcodeproj" 2>/dev/null || true
+    info "Xcode에서 바꾼 프로젝트 설정은 백업해 두고 되돌렸어요 (${patch#"$INSTALL_DIR"/})"
+  fi
+  if gitc merge --quiet --ff-only FETCH_HEAD 2>>"$WORK/git.log"; then
+    ok "최신 코드로 업데이트했어요 ($INSTALL_DIR)"
+  else
+    warn "업데이트를 합치지 못해 지금 코드로 계속할게요."
+  fi
 }
 
 config_get() { [ -f "$STATE_DIR/config" ] && sed -n "s/^$1=//p" "$STATE_DIR/config" | tail -1; return 0; }
@@ -548,7 +587,9 @@ refresh_devices() {
   xcrun devicectl list devices --timeout 30 --json-output "$WORK/devices.json" \
     >"$WORK/devicectl-list.log" 2>&1 || true
   if [ -s "$WORK/devices.json" ]; then jxa devices "$WORK/devices.json" > "$WORK/devices.tsv"; else : > "$WORK/devices.tsv"; fi
-  log "devices: $(tr '\n' '|' < "$WORK/devices.tsv")"
+  local summary
+  summary="$(cut -f1-4,6-12 "$WORK/devices.tsv" | tr '\n' '|')"   # 5번째 열(기기 이름)은 남기지 않는다
+  if [ "$summary" != "$LAST_DEVICES_LOG" ]; then LAST_DEVICES_LOG="$summary"; log "devices: $summary"; fi
 }
 
 # 기기 하나에 터널을 열어 최신 상태를 다시 읽는다(목록의 개발자 모드 값은 틀릴 수 있음).
@@ -903,7 +944,7 @@ finish_platform_downloads() {
   if [ -n "$PLATFORM_PID" ]; then
     wait "$PLATFORM_PID" 2>/dev/null
     PLATFORM_PID=""
-    { echo "----- platform download"; cat "$WORK/platform-download.log"; } >> "$LOG_FILE" 2>/dev/null
+    { echo "----- platform download"; cat "$WORK/platform-download.log"; } | redact >> "$LOG_FILE" 2>/dev/null
   fi
   missing="$(missing_platforms)"
   if [ -z "$missing" ]; then
@@ -954,6 +995,7 @@ build_apps() {
   BUNDLE_PREFIX="$(config_get bundle_prefix)"
   # 앱 ID는 그것을 등록한 팀 것이다. Apple ID(팀)가 바뀌었으면 기본값부터 다시 시작.
   if [ -n "$BUNDLE_PREFIX" ] && [ "$(config_get bundle_team)" != "$TEAM_ID" ]; then BUNDLE_PREFIX=""; fi
+  [ -n "$BUNDLE_PREFIX" ] || BUNDLE_PREFIX="$(config_get user_bundle_prefix)"
   [ -n "$BUNDLE_PREFIX" ] || BUNDLE_PREFIX="$DEFAULT_BUNDLE_PREFIX"
   info "빌드 중 'codesign이 키체인에 접근하려고 합니다' 창이 뜨면
       Mac 로그인 암호를 입력하고 [항상 허용]을 눌러주세요."
