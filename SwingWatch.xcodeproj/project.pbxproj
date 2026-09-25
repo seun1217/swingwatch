@@ -61,8 +61,8 @@
 		8DF06E5255A751BC2802E946 /* Embed Watch Content */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
 			files = (
 				B2B9294FA2E387FF0CA7749F /* SwingWatchWatch.app in Embed Watch Content */,
 			);
