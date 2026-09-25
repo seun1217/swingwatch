@@ -764,17 +764,98 @@ Xcode의 Apple ID 로그인([Settings…] → [$pane])을 확인한 뒤 다시 �
   esac
 }
 
-# 필요한 Xcode 플랫폼 구성요소(iOS/watchOS)를 내려받는다. 몇 GB라 오래 걸릴 수 있다.
-download_platforms() {
+# ----------------------------------------------------------------------------
+# Xcode 구성요소(iOS·watchOS 플랫폼). Xcode 26부터는 기기용 빌드에도 SDK와 같은 버전의
+# 플랫폼(시뮬레이터 런타임)이 설치돼 있어야 한다. 각각 수 GB라서 사람이 로그인·기기 준비를
+# 하는 동안 백그라운드로 받는다. xcodebuild -downloadPlatform의 종료 코드는 믿을 수 없어
+# 받은 뒤 simctl로 실제 설치 여부를 확인한다. 관리자 암호는 필요 없다.
+# ----------------------------------------------------------------------------
+PLATFORM_PID=""
+
+# $1: iOS|watchOS, $2: iphoneos|watchos → SDK와 같은 버전의 런타임이 있으면 0
+platform_installed() {
+  local v
+  v="$(xcrun --sdk "$2" --show-sdk-version 2>/dev/null)"
+  [ -n "$v" ] || return 1
+  xcrun simctl list runtimes 2>/dev/null | grep -E "^$1 ${v}[ .(]" | grep -vq "unavailable"
+}
+
+missing_platforms() {
+  local m=""
+  platform_installed iOS iphoneos || m="iOS"
+  platform_installed watchOS watchos || m="$m watchOS"
+  printf '%s' "${m# }"
+}
+
+download_platform_list() {   # 백그라운드에서 실행된다
+  local p
+  for p in "$@"; do
+    echo "=== xcodebuild -downloadPlatform $p"
+    xcodebuild -downloadPlatform "$p" || echo "=== exit $?"
+  done
+}
+
+start_platform_downloads() {
+  step "Xcode 구성요소 확인"
+  local missing free_gb
+  missing="$(missing_platforms)"
+  if [ -z "$missing" ]; then ok "iOS·watchOS 구성요소가 이미 있어요"; return; fi
+  free_gb="$(df -g "$HOME" 2>/dev/null | awk 'NR==2 {print $4}')"
+  case "$free_gb" in ''|*[!0-9]*) free_gb=999 ;; esac
+  if [ "$free_gb" -lt 25 ]; then
+    warn "Mac 저장 공간이 ${free_gb}GB 남았어요. 구성요소에 20GB 이상 필요해서 실패할 수 있어요."
+  fi
+  info "Xcode에 필요한 구성요소($missing)를 백그라운드로 내려받기 시작할게요."
+  info "몇 GB라 10~30분 걸려요. 그동안 다음 단계를 함께 진행해요."
+  info "(Xcode에서 'Components/플랫폼'을 내려받으라는 창이 떠도 닫으셔도 돼요)"
+  # shellcheck disable=SC2086  # missing은 공백으로 구분된 목록
+  ( download_platform_list $missing ) > "$WORK/platform-download.log" 2>&1 &
+  PLATFORM_PID=$!
+  log "platform download started: $missing (pid $PLATFORM_PID)"
+}
+
+finish_platform_downloads() {
+  local missing elapsed=0 pct
+  if [ -n "$PLATFORM_PID" ] && kill -0 "$PLATFORM_PID" 2>/dev/null; then
+    step "Xcode 구성요소 내려받기 마무리"
+    printf '    내려받는 중'
+    while kill -0 "$PLATFORM_PID" 2>/dev/null; do
+      sleep 5; elapsed=$((elapsed + 5))
+      if [ $((elapsed % 60)) -eq 0 ]; then
+        pct="$(tail -c 400 "$WORK/platform-download.log" 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)?%' | tail -1)"
+        printf ' %d분%s' $((elapsed / 60)) "${pct:+($pct)}"
+      else
+        printf '.'
+      fi
+    done
+    echo
+  fi
+  if [ -n "$PLATFORM_PID" ]; then
+    wait "$PLATFORM_PID" 2>/dev/null
+    PLATFORM_PID=""
+    { echo "----- platform download"; cat "$WORK/platform-download.log"; } >> "$LOG_FILE" 2>/dev/null
+  fi
+  missing="$(missing_platforms)"
+  [ -z "$missing" ] && { ok "iOS·watchOS 구성요소 준비 완료"; return 0; }
+  # 한 번 더 앞에서(진행 표시와 함께) 시도
+  download_platforms_foreground $missing && return 0
+  todo "Xcode 구성요소($missing)를 받지 못했어요. Xcode에서 직접 받아주세요:
+ Xcode → [Settings…] → [Components] → iOS·watchOS 옆 [Get]
+다 받아지면 이 명령을 다시 실행하세요. (회사·학교 네트워크나 VPN에선 실패할 수 있어요)"
+  die "Xcode 구성요소가 없어 빌드할 수 없어요."
+}
+
+# 빌드 중 '플랫폼 없음' 오류가 났을 때도 쓴다. 0 = 모두 설치됨
+download_platforms_foreground() {
   [ "$PLATFORMS_DOWNLOADED" = 1 ] && return 1
   PLATFORMS_DOWNLOADED=1
-  info "Xcode에 iOS/watchOS 구성요소가 없어 내려받을게요(몇 GB, 10~30분)."
-  local p
-  for p in iOS watchOS; do
-    run_with_progress "$p 구성요소 내려받는 중" "$WORK/download-$p.log" xcodebuild -downloadPlatform "$p" \
-      || { warn "$p 구성요소를 내려받지 못했어요."; return 1; }
+  local p list="$*"
+  [ -n "$list" ] || list="$(missing_platforms)"
+  [ -n "$list" ] || return 0
+  for p in $list; do
+    run_with_progress "$p 구성요소 내려받는 중(수 GB)" "$WORK/download-$p.log" xcodebuild -downloadPlatform "$p" || true
   done
-  ok "구성요소 설치 완료"
+  [ -z "$(missing_platforms)" ]
 }
 
 # $1: 스킴, $2: -destination 값, $3: 안내 문구, $4: 로그 이름
@@ -849,7 +930,7 @@ handle_build_failure() {
         return 0
       fi ;;
     platform)
-      download_platforms && return 0 ;;
+      download_platforms_foreground && return 0 ;;
     account)
       explain_build_error account "$WORK/last-build.log"
       press_enter
@@ -1039,14 +1120,18 @@ main() {
   caffeinate -dims -w $$ >/dev/null 2>&1 &   # 설치 중 Mac이 잠들지 않게
 
   if [ "$CI_MODE" = 1 ]; then
+    start_platform_downloads
+    finish_platform_downloads
     ci_build
     printf '\n%sCI 점검 완료%s\n' "$C_GRN" "$C_0"
     return 0
   fi
 
   select_team
+  start_platform_downloads
   select_iphone
   setup_watch
+  finish_platform_downloads
   build_apps
   install_iphone
   launch_iphone

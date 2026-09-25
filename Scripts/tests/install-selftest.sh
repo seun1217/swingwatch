@@ -165,9 +165,15 @@ FAKE_XCODE="$T/Xcode.app"
 mkdir -p "$FAKE_XCODE/Contents/Developer/usr/bin"
 printf '#!/bin/sh\nexit 0\n' > "$FAKE_XCODE/Contents/Developer/usr/bin/xcodebuild"
 chmod +x "$FAKE_XCODE/Contents/Developer/usr/bin/xcodebuild"
+# 가짜 원격 저장소(설치 스크립트가 확인하는 프로젝트 파일만). CI의 얕은 체크아웃에서도 되도록
+# 현재 저장소를 push하지 않고 새로 만든다.
 git init -q --bare "$T/remote.git"
-git -C "$ROOT" push -q "$T/remote.git" HEAD:refs/heads/main 2>/dev/null \
-  || { echo "  (git push to fake remote failed)"; FAIL=$((FAIL + 1)); }
+mkdir -p "$T/src/SwingWatch.xcodeproj"
+echo "// fake" > "$T/src/SwingWatch.xcodeproj/project.pbxproj"
+( cd "$T/src" && git init -q && git add -A \
+  && git -c user.name=selftest -c user.email=selftest@example.com commit -q -m init \
+  && git push -q "$T/remote.git" HEAD:refs/heads/main ) \
+  || { echo "  FAIL 가짜 원격 저장소 준비"; FAIL=$((FAIL + 1)); }
 
 # 가짜 명령들 — 함수가 같은 이름의 실제 명령보다 먼저 실행된다.
 uname() { echo Darwin; }
@@ -193,6 +199,7 @@ xcodebuild() {
   case "$1" in
     -version) printf 'Xcode 26.6\nBuild version 17F113\n'; return 0 ;;
     -license|-checkFirstLaunchStatus) return 0 ;;
+    -downloadPlatform) [ "$2" = watchOS ] && : > "$T/watchos-installed"; echo "Downloading $2: 100%"; return 0 ;;
   esac
   local scheme="" dd="" prefix="" a prev=""
   for a in "$@"; do
@@ -217,6 +224,12 @@ xcrun() {
   for a in "$@"; do [ "$prev" = "--json-output" ] && json="$a"; prev="$a"; done
   case "$*" in
     "--sdk iphoneos --show-sdk-version"|"--sdk watchos --show-sdk-version") echo 26.5 ;;
+    "simctl list runtimes")
+      echo "== Runtimes =="
+      echo "iOS 26.5 (26.5 - 23F75) - com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+      echo "watchOS 11.2 (11.2 - 22S99) - com.apple.CoreSimulator.SimRuntime.watchOS-11-2 (unavailable, old)"
+      [ -f "$T/watchos-installed" ] && echo "watchOS 26.5 (26.5 - 23T570) - com.apple.CoreSimulator.SimRuntime.watchOS-26-5"
+      return 0 ;;
     "devicectl list devices"*) cp "$FX/flow-devices.json" "$json" ;;
     "devicectl device info details"*) return 1 ;;
     "devicectl device info ddiServices"*) return 0 ;;
@@ -234,11 +247,12 @@ xcrun() {
   esac
 }
 
+rm -f "$T/watchos-installed"
 run_flow() {   # $1: 출력 파일
   rm -f "$T/launches" "$T/calls.log"
   (
     DEVELOPER_DIR="$FAKE_XCODE/Contents/Developer"
-    REPO_URL="$T/remote.git"; BRANCH=main
+    REPO_URL="file://$T/remote.git"; BRANCH=main
     INSTALL_DIR="$T/SwingWatch"; STATE_DIR="$INSTALL_DIR/.install"
     main
   ) > "$1" 2>&1
@@ -248,6 +262,9 @@ run_flow() {   # $1: 출력 파일
 FAKE_TAKEN=0 SWINGWATCH_SKIP_WATCH=0
 check "흐름 1: 정상 설치 종료 코드" "$(run_flow "$T/flow1.out")" "0"
 contains "흐름 1: 설치 완료 메시지" "$T/flow1.out" "설치 끝"
+contains "흐름 1: 없는 구성요소만 백그라운드로 받기" "$T/calls.log" "xcodebuild -downloadPlatform watchOS"
+check "흐름 1: 이미 있는 iOS 구성요소는 안 받음" "$(grep -c 'downloadPlatform iOS' "$T/calls.log")" "0"
+contains "흐름 1: 구성요소 준비 확인" "$T/flow1.out" "iOS·watchOS 구성요소 준비 완료"
 contains "흐름 1: 워치 먼저 빌드(워치 등록)" "$T/calls.log" "-scheme SwingWatchWatch -configuration Debug -destination platform=watchOS,id=00008301-000B22222222202E"
 contains "흐름 1: iPhone 빌드는 하드웨어 UDID로" "$T/calls.log" "-destination platform=iOS,id=00008110-000A11111111801E"
 contains "흐름 1: 기기 등록 허용 플래그" "$T/calls.log" "-allowProvisioningUpdates -allowProvisioningDeviceRegistration"
@@ -261,6 +278,7 @@ check "흐름 1: sudo 호출 없음" "$(grep -c '^sudo' "$T/calls.log")" "0"
 # 두 번째 실행(7일 뒤 재설치 상황): 기존 폴더 업데이트 경로
 check "흐름 2: 재실행도 정상 종료" "$(run_flow "$T/flow2.out")" "0"
 contains "흐름 2: 기존 코드 업데이트" "$T/flow2.out" "최신 코드로 업데이트했어요"
+contains "흐름 2: 구성요소 이미 있음" "$T/flow2.out" "iOS·watchOS 구성요소가 이미 있어요"
 
 # 앱 ID가 선점된 경우: 팀 전용 ID로 바꿔 다시 빌드, 워치 건너뛰기
 rm -rf "$T/SwingWatch"
