@@ -92,6 +92,19 @@ check "기기 미등록" "$(cb 'error: Communication with Apple failed: Your tea
 check "기기 못 찾음" "$(cb 'xcodebuild: error: Unable to find a destination matching the provided destination specifier:')" "destination"
 check "'No profiles for'는 마지막 순위" "$(cb 'error: No profiles for '"'"'com.x'"'"' were found')" "provisioning"
 check "알 수 없는 오류" "$(cb 'error: something else')" "unknown"
+check "워치 준비 중(잠시 기다리면 됨)" "$(cb '{ platform:iOS, id:00008110-X, name:Test iPhone, error:Device is busy (Preparing the watch for development via Test iPhone) }
+xcodebuild: error: Unable to find a destination matching the provided destination specifier:')" "busy"
+check "이전 빌드가 남아 DB 잠김" "$(cb 'error: unable to attach DB: error: accessing build database: disk I/O error: database is locked')" "db_locked"
+
+echo "== 멈출 때 백그라운드 작업 정리"
+bash -c 'sleep 60 & echo $! > "$0"; wait' "$WORK/child.pid" &
+PARENT=$!
+i=0; while [ ! -s "$WORK/child.pid" ] && [ $i -lt 50 ]; do sleep 0.1; i=$((i + 1)); done
+CHILD=$(cat "$WORK/child.pid")
+stop_job "$PARENT"
+i=0; while kill -0 "$CHILD" 2>/dev/null && [ $i -lt 30 ]; do sleep 0.1; i=$((i + 1)); done
+check "자식 프로세스까지 종료" "$(kill -0 "$CHILD" 2>/dev/null && echo alive || echo stopped)" "stopped"
+wait "$PARENT" 2>/dev/null
 
 # ----------------------------------------------------------------------------
 echo "== Xcode 계정·팀 찾기"
@@ -156,6 +169,22 @@ PLIST
   defaults delete "$XT_DOMAIN" >/dev/null 2>&1
   unset -f security
   XT_DOMAIN="com.apple.dt.Xcode"
+
+  echo "== 실제 macOS plutil/date 로 만료일 안내"
+  APP_PATH="$WORK/Fake.app"; mkdir -p "$APP_PATH"; : > "$APP_PATH/embedded.mobileprovision"
+  security() {   # security cms -D 대신 프로필 내용(plist)을 돌려준다
+    cat <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>ExpirationDate</key><date>2026-10-02T04:44:13Z</date>
+  <key>TeamIdentifier</key><array><string>Y8QK9BKTCW</string></array>
+</dict></plist>
+PLIST
+  }
+  EXPIRY_OUT="$(TZ=Asia/Seoul print_expiry)"
+  check "만료일(한국 시간) 안내" "$EXPIRY_OUT" "    이번 설치는 10월 2일 13:44까지 쓸 수 있어요. 그 뒤엔 같은 명령을 다시 실행하세요."
+  unset -f security
 fi
 
 # ----------------------------------------------------------------------------
@@ -207,6 +236,12 @@ xcodebuild() {
     case "$a" in BUNDLE_ID_PREFIX=*) prefix="${a#BUNDLE_ID_PREFIX=}" ;; esac
     prev="$a"
   done
+  if [ "${FAKE_BUSY:-0}" = 1 ] && [ ! -f "$T/busy-done" ]; then
+    : > "$T/busy-done"
+    echo '{ platform:iOS, id:x, name:Test iPhone, error:Device is busy (Preparing the watch for development via Test iPhone) }'
+    echo 'xcodebuild: error: Unable to find a destination matching the provided destination specifier:'
+    return 70
+  fi
   if [ "${FAKE_TAKEN:-0}" = 1 ] && [ "$prefix" = "com.seun1217" ]; then
     echo 'error: Failed Registering Bundle Identifier: The app identifier "com.seun1217.swingwatch" cannot be registered to your development team because it is not available.'
     echo '** BUILD FAILED **'; return 65
@@ -288,6 +323,12 @@ contains "흐름 3: 전용 ID로 전환 안내" "$T/flow3.out" "com.swingwatch.t
 check "흐름 3: 바뀐 ID 저장" "$(sed -n 's/^bundle_prefix=//p' "$T/SwingWatch/.install/config")" "com.swingwatch.ty8qk9bktcw"
 check "흐름 3: 워치 빌드 안 함" "$(grep -c 'scheme SwingWatchWatch' "$T/calls.log")" "0"
 FAKE_TAKEN=0 SWINGWATCH_SKIP_WATCH=0
+
+# 워치 준비 중(busy) → 자동으로 기다렸다가 다시 빌드
+rm -f "$T/busy-done"; FAKE_BUSY=1
+check "흐름 4: 기기 준비 중이어도 자동으로 기다려 설치 완료" "$(run_flow "$T/flow4.out")" "0"
+contains "흐름 4: 준비 중 안내" "$T/flow4.out" "개발용으로 준비하는 중이에요"
+FAKE_BUSY=0
 
 echo
 echo "통과 $PASS, 실패 $FAIL"

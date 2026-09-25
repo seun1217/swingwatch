@@ -27,6 +27,8 @@
 
 set -u
 set -o pipefail
+# 사용자 환경의 XCODE_XCCONFIG_FILE은 명령줄 빌드 설정까지 덮어쓰므로 이 스크립트에선 쓰지 않는다.
+unset XCODE_XCCONFIG_FILE
 
 REPO_URL="https://github.com/seun1217/swingwatch.git"
 INSTALL_DIR="${SWINGWATCH_DIR:-$HOME/SwingWatch}"
@@ -84,8 +86,24 @@ die() {
   exit 1
 }
 
-cleanup() { rm -rf "$WORK" 2>/dev/null; }
+BG_PID=""   # 지금 진행 표시 중인 백그라운드 명령(빌드·설치 등)
+stop_job() {   # 프로세스와 그 자식들을 끝낸다
+  [ -n "$1" ] || return 0
+  pkill -TERM -P "$1" 2>/dev/null
+  kill -TERM "$1" 2>/dev/null
+  return 0
+}
+cleanup() {
+  stop_job "$BG_PID"
+  stop_job "${PLATFORM_PID:-}"
+  rm -rf "$WORK" 2>/dev/null
+}
+on_interrupt() {
+  printf '\n\n    멈췄어요. 같은 명령을 다시 실행하면 이어서 진행해요.\n\n'
+  exit 130   # EXIT 트랩(cleanup)이 백그라운드 빌드·다운로드도 정리한다
+}
 trap cleanup EXIT
+trap on_interrupt INT TERM
 
 have_tty() { ( : </dev/tty ) 2>/dev/null; }
 
@@ -127,12 +145,14 @@ run_with_progress() {
   shift 2
   "$@" > "$out" 2>&1 &
   pid=$!
+  BG_PID=$pid
   printf '    %s' "$label"
   while kill -0 "$pid" 2>/dev/null; do
     sleep 5; elapsed=$((elapsed + 5))
     if [ $((elapsed % 60)) -eq 0 ]; then printf ' %d분' $((elapsed / 60)); else printf '.'; fi
   done
   wait "$pid"; rc=$?
+  BG_PID=""
   echo
   [ -n "$LOG_FILE" ] && { echo "----- $* (exit $rc)"; cat "$out"; } >> "$LOG_FILE" 2>/dev/null
   return $rc
@@ -731,6 +751,8 @@ classify_build_error() {
   elif grep -qiE "No Accounts|No Account for Team|missing Xcode-Token|could not sign in|login details for account|Unable to log in with account|session has expired" "$f"; then echo account
   elif grep -qiE "requires a development team" "$f"; then echo no_team
   elif grep -qiE "Your team has no devices from which to generate a provisioning profile" "$f"; then echo no_device
+  elif grep -qiE "Device is busy|Preparing the watch for development|is preparing" "$f"; then echo busy
+  elif grep -qiE "database is locked|two concurrent builds|concurrent builds running" "$f"; then echo db_locked
   elif grep -qiE "Unable to find a destination matching the provided destination specifier|needs to connect to determine its availability|Timed out waiting for" "$f"; then echo destination
   elif grep -qiE "Developer Mode (is )?disabled|enable Developer Mode" "$f"; then echo devmode
   elif grep -qiE "is not prefixed with the parent app's bundle identifier" "$f"; then echo bundle_structure
@@ -815,7 +837,8 @@ start_platform_downloads() {
 }
 
 finish_platform_downloads() {
-  local missing elapsed=0 pct
+  local missing elapsed=0 pct had_download=0
+  [ -n "$PLATFORM_PID" ] && had_download=1
   if [ -n "$PLATFORM_PID" ] && kill -0 "$PLATFORM_PID" 2>/dev/null; then
     step "Xcode 구성요소 내려받기 마무리"
     printf '    내려받는 중'
@@ -836,7 +859,10 @@ finish_platform_downloads() {
     { echo "----- platform download"; cat "$WORK/platform-download.log"; } >> "$LOG_FILE" 2>/dev/null
   fi
   missing="$(missing_platforms)"
-  [ -z "$missing" ] && { ok "iOS·watchOS 구성요소 준비 완료"; return 0; }
+  if [ -z "$missing" ]; then
+    [ "$had_download" = 1 ] && ok "iOS·watchOS 구성요소 준비 완료"
+    return 0
+  fi
   # 한 번 더 앞에서(진행 표시와 함께) 시도
   download_platforms_foreground $missing && return 0
   todo "Xcode 구성요소($missing)를 받지 못했어요. Xcode에서 직접 받아주세요:
@@ -884,6 +910,7 @@ build_apps() {
       Mac 로그인 암호를 입력하고 [항상 허용]을 눌러주세요."
 
   local attempts=0
+  BUSY_WAITS=0
   while :; do
     attempts=$((attempts + 1))
     [ $attempts -gt 5 ] && die "여러 번 시도했지만 빌드에 실패했어요."
@@ -892,6 +919,7 @@ build_apps() {
     # 워치를 먼저: 워치를 대상으로 빌드해야 무료 팀 프로필에 워치가 등록된다.
     if [ "$WATCH_READY" = 1 ]; then
       if ! signed_build "$WATCH_SCHEME" "platform=watchOS,id=$WATCH_UDID" "워치 앱 빌드 중" watch; then
+        if [ "$BUILD_ERR" = busy ]; then wait_device_busy; attempts=$((attempts - 1)); continue; fi
         case "$BUILD_ERR" in
           destination|devmode|no_device|provisioning|unknown)
             warn "워치용 빌드에 실패해서 워치는 건너뛰고 iPhone 앱부터 설치할게요."
@@ -905,6 +933,7 @@ build_apps() {
     if signed_build "$IOS_SCHEME" "platform=iOS,id=$IPHONE_UDID" "iPhone 앱 빌드 중" ios; then
       break
     fi
+    if [ "$BUILD_ERR" = busy ]; then wait_device_busy; attempts=$((attempts - 1)); continue; fi
     handle_build_failure || return 1
   done
 
@@ -919,9 +948,26 @@ build_apps() {
   fi
 }
 
+# 워치를 처음 개발용으로 준비하는 동안 Xcode가 기기를 "busy"로 표시한다. 잠시 기다리면 풀린다.
+BUSY_WAITS=0
+wait_device_busy() {
+  BUSY_WAITS=$((BUSY_WAITS + 1))
+  [ $BUSY_WAITS -gt 30 ] && die "기기 준비가 15분 넘게 끝나지 않았어요. iPhone·워치를 재시동한 뒤 다시 실행하세요."
+  [ $BUSY_WAITS -eq 1 ] && info "Xcode가 기기를 개발용으로 준비하는 중이에요(처음 한 번, 몇 분). 워치 화면을 켜둔 채 기다릴게요."
+  sleep 30
+}
+
 # 실패 원인에 따라 자동 복구를 시도한다. 0 = 다시 빌드, 1 = 포기
 handle_build_failure() {
   case "$BUILD_ERR" in
+    db_locked)
+      # 지난번에 멈춘 빌드가 남아 있다 → 이 설치 폴더의 빌드만 정리하고 다시.
+      if [ "${DB_UNLOCKED:-0}" = 0 ]; then
+        DB_UNLOCKED=1
+        pkill -f -- "-derivedDataPath $DERIVED" 2>/dev/null
+        sleep 5
+        return 0
+      fi ;;
     bundle_taken)
       if [ "$BUNDLE_PREFIX" = "$DEFAULT_BUNDLE_PREFIX" ]; then
         # 다른 팀이 이미 쓰는 ID → 내 팀 전용 ID(팀 ID 기반이라 매번 같음)로 바꿔 다시.
@@ -1089,6 +1135,19 @@ install_watch() {
   fi
 }
 
+# 무료 팀 프로필의 만료 시각을 읽어 알려준다(실패하면 조용히 넘어감).
+print_expiry() {
+  local prov="$APP_PATH/embedded.mobileprovision" iso epoch m d hm
+  [ -f "$prov" ] || return 1
+  security cms -D -i "$prov" > "$WORK/app-profile.plist" 2>/dev/null || return 1
+  iso="$(plutil -extract ExpirationDate raw -o - "$WORK/app-profile.plist" 2>/dev/null)" || return 1
+  epoch="$(date -j -u -f '%Y-%m-%dT%H:%M:%SZ' "$iso" '+%s' 2>/dev/null)" || return 1
+  m="$(date -r "$epoch" '+%m')"; d="$(date -r "$epoch" '+%d')"; hm="$(date -r "$epoch" '+%H:%M')"
+  printf '    이번 설치는 %d월 %d일 %s까지 쓸 수 있어요. 그 뒤엔 같은 명령을 다시 실행하세요.\n' \
+    "$((10#$m))" "$((10#$d))" "$hm"
+  log "profile expires: $iso"
+}
+
 # ----------------------------------------------------------------------------
 # CI 점검: 서명·기기 없이 빌드하고 결과물 구조만 확인
 # ----------------------------------------------------------------------------
@@ -1140,7 +1199,7 @@ main() {
   printf '\n%s🎉 설치 끝!%s\n' "$C_B$C_GRN" "$C_0"
   printf '    iPhone을 정면 2~4m에 세우고 [세션 시작]을 누른 뒤 스윙해 보세요.\n'
   [ "$WATCH_READY" = 1 ] && printf '    세션을 시작할 때 워치에서도 스윙워치를 열어두면 손목을 내려도 진동이 와요.\n'
-  printf '    무료 Apple ID라 7일 뒤 앱이 안 열리면, 같은 명령을 다시 실행하면 돼요.\n'
+  print_expiry || printf '    무료 Apple ID라 7일 뒤 앱이 안 열리면, 같은 명령을 다시 실행하면 돼요.\n'
   printf '    %s기록: %s%s\n\n' "$C_DIM" "$LOG_FILE" "$C_0"
 }
 

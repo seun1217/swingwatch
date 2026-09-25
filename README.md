@@ -48,17 +48,21 @@ iPhone을 세워 두고 연습하면, **카메라가 계속 스윙을 지켜보�
 
 ## 시작하기
 
-> **Xcode가 처음이신가요?** 클릭 하나하나까지 적어둔 안내가 있습니다 → **[docs/시작하기.md](docs/시작하기.md)**
+Mac의 터미널에 **이 한 줄**을 붙여 넣으면 설치 도우미가 나머지를 합니다.
 
-`SwingWatch.xcodeproj`가 저장소에 포함되어 있으므로 **터미널도, XcodeGen 설치도 필요 없습니다.**
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/seun1217/swingwatch/main/Scripts/install.sh)"
+```
 
-1. 저장소를 내려받고 **`SwingWatch.xcodeproj`를 더블클릭**해 엽니다.
-2. **서명 설정**: `SwingWatch`, `SwingWatchWatch` **두 타깃 모두** Signing & Capabilities에서 Team을 선택하세요. (하나만 하면 워치 앱이 설치되지 않습니다)
-   - 번들 ID를 바꿔야 한다면 세 곳을 함께 맞춰야 합니다: iOS 타깃 ID → 워치 타깃 ID(`<iOS ID>.watchkitapp`) → `SwingWatchWatch/Info.plist`의 `WKCompanionAppBundleIdentifier`(= iOS ID).
-3. **iPhone에 설치**: `SwingWatch` 스킴 + 내 iPhone 선택 후 ▶︎. 시뮬레이터에는 카메라가 없으니 **실물 기기**가 필요합니다.
-4. **워치 앱 열어두기**: 세션을 시작할 때 워치에서 스윙워치 앱이 한 번 열려 있어야 백그라운드 유지가 켜집니다. 켜진 뒤에는 손목을 내려도 됩니다.
+도우미는 Xcode 준비, 코드 받기(`~/SwingWatch`), 서명 팀 찾기, 필요한 Xcode 구성요소 받기,
+빌드·서명, iPhone 설치·실행, Apple Watch 직접 설치까지 자동으로 합니다.
+사람만 할 수 있는 일(Xcode에 Apple ID 로그인, iPhone·워치의 [신뢰]와 개발자 모드)은
+그때그때 한국어로 안내하고, 끝나면 알아서 다음 단계로 넘어갑니다.
 
-무료 Apple ID로 설치한 앱은 **7일 뒤 만료**됩니다. Xcode에서 다시 ▶︎ 를 누르면 갱신됩니다.
+- **처음이신가요?** 무엇을 누르게 되는지 미리 보기 → **[docs/시작하기.md](docs/시작하기.md)**
+- 무료 Apple ID로 설치한 앱은 **7일 뒤 만료**됩니다. 같은 명령을 다시 실행하면 갱신돼요.
+- Xcode에서 직접 설치하는 방법은 가이드의 부록에 있습니다.
+  앱 ID를 바꿔야 하면 프로젝트 빌드 설정의 `BUNDLE_ID_PREFIX` **한 곳만** 바꾸면 됩니다.
 
 ### 프로젝트 파일을 직접 생성하려면 (선택)
 
@@ -83,7 +87,8 @@ iPhone을 세워 두고 연습하면, **카메라가 계속 스윙을 지켜보�
 ## 프로젝트 구조
 
 ```
-docs/시작하기.md                 # Xcode 처음 쓰는 분을 위한 단계별 설치 안내
+docs/시작하기.md                 # 설치 가이드(한 줄 설치 + 부록: Xcode 수동 설치)
+Scripts/install.sh              # 한 줄 설치 도우미 (macOS bash 3.2, 자체 테스트: Scripts/tests/)
 SwingWatch.xcodeproj/           # 생성된 Xcode 프로젝트 (커밋되어 있어 바로 열 수 있음)
 project.yml                     # XcodeGen 정의 (iOS 앱 / watchOS 앱 / 유닛 테스트)
 Scripts/bootstrap.sh            # 프로젝트 재생성 (xcodegen generate)
