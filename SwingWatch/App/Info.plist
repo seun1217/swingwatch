@@ -26,10 +26,6 @@
 	<string>골프 스윙을 촬영하고 자세를 분석하기 위해 카메라를 사용합니다.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>armv7</string>
-	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
