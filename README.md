@@ -65,10 +65,10 @@ iPhone을 세워 두고 연습하면, **카메라가 계속 스윙을 지켜보�
 `project.yml`을 고쳐 타깃이나 파일 구성을 바꾼 경우에만 필요합니다. 보통은 `.github/workflows/generate-project.yml`이 자동으로 다시 생성해 커밋합니다.
 
 ```bash
-./Scripts/bootstrap.sh     # XcodeGen 실행 + Xcode 26이면 워치 임베드 위치 자동 패치
+./Scripts/bootstrap.sh     # = xcodegen generate
 ```
 
-커밋된 프로젝트는 워치 앱을 `PlugIns/`에 임베드하는 **Xcode 26 방식**으로 맞춰져 있습니다. XcodeGen 기본값인 `Watch/` 임베드는 Xcode 26의 검증에서 거부되기 때문입니다([XcodeGen#1613](https://github.com/yonaskolb/XcodeGen/issues/1613)). CI에서 두 방식을 모두 빌드해 검증합니다.
+워치 앱은 Xcode 표준 위치인 `SwingWatch.app/Watch/`에 들어갑니다(Xcode의 빌드 엔진 Swift Build가 쓰는 위치이며, `PlugIns/`로 옮기면 iPhone Watch 앱의 '사용 가능한 앱'에 나타나지 않는 사례가 있습니다). CI가 이 위치를 확인합니다.
 
 ## 연습장에서 쓰는 법
 
@@ -86,7 +86,7 @@ iPhone을 세워 두고 연습하면, **카메라가 계속 스윙을 지켜보�
 docs/시작하기.md                 # Xcode 처음 쓰는 분을 위한 단계별 설치 안내
 SwingWatch.xcodeproj/           # 생성된 Xcode 프로젝트 (커밋되어 있어 바로 열 수 있음)
 project.yml                     # XcodeGen 정의 (iOS 앱 / watchOS 앱 / 유닛 테스트)
-Scripts/bootstrap.sh            # 프로젝트 생성 + Xcode 26 워치 임베드 패치
+Scripts/bootstrap.sh            # 프로젝트 재생성 (xcodegen generate)
 Shared/SwingFeedback.swift      # 폰↔워치 공용 모델·메시지 규약
 SwingWatch/                     # iOS 앱
   App/                          #   앱 진입점, SessionCoordinator(파이프라인 허브), Info.plist
