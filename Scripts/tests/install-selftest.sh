@@ -153,6 +153,7 @@ cp "$WORK/stale-teams.txt" "$FX/.stale-teams.tmp"; TEAMS=.stale-teams.tmp
 CERT="$(make_cert OLDTEAM123)"
 security() { [ "$1" = find-certificate ] && printf '%s\n' "$CERT"; return 0; }
 xt_pick_team >/dev/null 2>&1; check "다른 Apple ID의 팀·인증서는 고르지 않고 기다림" "$?" "1"
+check "90초 넘게 다른 후보가 없으면 그 인증서 팀을 마지막 수단으로" "$(XT_LATE=1 xt_pick_team 2>/dev/null)" "OLDTEAM123"
 CERT="$(make_cert NEWTEAM999)"
 check "지금 계정의 인증서 팀은 사용(캐시가 아직 없을 때)" "$(xt_pick_team 2>/dev/null)" "NEWTEAM999"
 rm -f "$FX/.stale-teams.tmp"
@@ -219,6 +220,60 @@ PLIST
 fi
 
 # ----------------------------------------------------------------------------
+echo "== 설치할 iPhone 고르기"
+# 열: ID UDID 플랫폼 종류 이름 개발자모드 터널 연결방식 페어링 OS 실기기 DDI
+TAB_A="$(printf 'AAAA\tUDID-A\tiOS\tiPhone\tMy iPhone\t%s\t%s\t%s\tpaired\t26.0\tphysical\tyes' disabled connected wired)"
+TAB_A_OFF="$(printf 'AAAA\tUDID-A\tiOS\tiPhone\tMy iPhone\tdisabled\tunavailable\t-\tpaired\t26.0\tphysical\t-')"
+TAB_A_OK="$(printf 'AAAA\tUDID-A\tiOS\tiPhone\tMy iPhone\tenabled\tconnected\twired\tpaired\t26.0\tphysical\tyes')"
+TAB_B="$(printf 'BBBB\tUDID-B\tiOS\tiPhone\tFamily iPhone\tenabled\tdisconnected\tlocalNetwork\tpaired\t18.5\tphysical\tyes')"
+TAB_O="$(printf 'OOOO\tUDID-O\tiOS\tiPhone\tOld iPhone\tenabled\tunavailable\t-\tpaired\t17.0\tphysical\t-')"
+TAB_N_NEW="$(printf 'NNNN\tUDID-N\tiOS\tiPhone\tNew iPhone\t-\tdisconnected\twired\tunpaired\t26.0\tphysical\t-')"
+TAB_N_OK="$(printf 'NNNN\tUDID-N\tiOS\tiPhone\tNew iPhone\tenabled\tconnected\twired\tpaired\t26.0\tphysical\tyes')"
+sel_run() {   # sel_run 저장된폰 목록1 [목록2 ...]  (마지막 목록은 계속 반복)
+  local saved="$1"; shift
+  mkdir -p "$WORK/sel"; rm -f "$WORK/sel"/*
+  local i=0 l
+  for l in "$@"; do i=$((i + 1)); printf '%s\n' "$l" > "$WORK/sel/$i.tsv"; done
+  (
+    STATE_DIR="$WORK/selstate"; rm -rf "$STATE_DIR"; mkdir -p "$STATE_DIR"
+    [ -n "$saved" ] && printf 'iphone=%s\n' "$saved" > "$STATE_DIR/config"
+    NPOLL=0; NLIST=$i
+    refresh_devices() {
+      NPOLL=$((NPOLL + 1)); local k=$NPOLL; [ $k -gt $NLIST ] && k=$NLIST
+      cp "$WORK/sel/$k.tsv" "$WORK/devices.tsv"
+    }
+    device_details() { return 1; }
+    have_tty() { return 0; }
+    choose() { echo "${CHOICE:-1}"; }
+    poll_wait() { POLL_REPLY=""; POLL_ENTER="${SEL_ENTER:-0}"; SECONDS=$((SECONDS + $1)); }
+    xcrun() { :; }
+    check_os_support() { :; }
+    select_iphone
+    echo "PICKED=$IPHONE_UDID SAVED=$(config_get iphone)"
+  ) 2>&1
+}
+OUT="$(sel_run "" "$TAB_A
+$TAB_B" "$TAB_A_OFF
+$TAB_B" "$TAB_A_OK
+$TAB_B")"
+check "고른 iPhone이 재시동하는 동안 다른 폰으로 넘어가지 않음" "$(printf '%s\n' "$OUT" | tail -1)" "PICKED=UDID-A SAVED=UDID-A"
+check "재시동 중 안내" "$(printf '%s\n' "$OUT" | grep -c '재시동 중이면')" "1"
+OUT="$(sel_run UDID-B "$TAB_A_OK
+$TAB_B")"
+check "케이블로 꽂은 폰이 저장된 폰과 다르면 다시 물어봄" "$(printf '%s\n' "$OUT" | grep -c '여러 대예요')" "1"
+OUT="$(sel_run UDID-A "$TAB_A_OK
+$TAB_B")"
+check "저장된 폰이 케이블로 꽂혀 있으면 묻지 않음" "$(printf '%s\n' "$OUT" | grep -c '여러 대예요')/$(printf '%s\n' "$OUT" | tail -1)" "0/PICKED=UDID-A SAVED=UDID-A"
+OUT="$(SEL_ENTER=1 sel_run "" "$TAB_B")"
+check "Wi-Fi로만 보이는 폰은 확인을 받음" "$(printf '%s\n' "$OUT" | grep -c 'Wi-Fi로 연결된')" "1"
+check "Enter로 그 폰 확정" "$(printf '%s\n' "$OUT" | tail -1)" "PICKED=UDID-B SAVED=UDID-B"
+OUT="$(sel_run "" "$TAB_O
+$TAB_N_NEW" "$TAB_O
+$TAB_N_OK")"
+check "새로 꽂은 폰(신뢰 전)을 꺼진 예전 폰보다 먼저 안내" "$(printf '%s\n' "$OUT" | grep -c "Old iPhone'에 연결이 안 돼요")/$(printf '%s\n' "$OUT" | grep -c '신뢰하겠습니까')" "0/1"
+check "신뢰 후 새 폰 사용" "$(printf '%s\n' "$OUT" | tail -1)" "PICKED=UDID-N SAVED=UDID-N"
+
+# ----------------------------------------------------------------------------
 echo "== 흐름 모의 실행 (가짜 Xcode·iPhone·워치)"
 T="$WORK/flow"; mkdir -p "$T"
 FAKE_XCODE="$T/Xcode.app"
@@ -249,9 +304,19 @@ mdfind() { :; }
 open() { echo "open $*" >> "$T/calls.log"; }
 caffeinate() { :; }
 sudo() { echo "sudo $*" >> "$T/calls.log"; }
-security() { return 1; }
+# 프로필(embedded.mobileprovision) 내용: 등록된 기기 목록만
+FAKE_PROFILE_DEVICES="00008110-000A11111111801E 00008301-000B22222222202E 00008120-000C33333333401E"
+security() {
+  case "$1" in
+    cms) printf '<plist version="1.0"><dict><key>ProvisionedDevices</key><array>'
+         for u in $FAKE_PROFILE_DEVICES; do printf '<string>%s</string>' "$u"; done
+         printf '</array></dict></plist>\n' ;;
+    *) return 1 ;;
+  esac
+}
 have_tty() { return 1; }
-poll_wait() { POLL_REPLY=""; }
+# 기다리는 만큼 시계(SECONDS)를 앞으로 돌린다 → '20분 뒤'·'90분 뒤' 같은 동작도 바로 확인
+poll_wait() { POLL_REPLY="${FAKE_REPLY:-}"; POLL_ENTER=0; SECONDS=$((SECONDS + ${1:-0})); }
 sleep() { :; }
 defaults() {
   case "$1 $3" in
@@ -279,6 +344,11 @@ xcodebuild() {
     echo '{ platform:iOS, id:x, name:Test iPhone, error:Test iPhone is busy: Preparing the watch for development }'
     return 70
   fi
+  if [ "${dest#platform=iOS}" != "$dest" ] && [ "$(cat "$T/ios-busy" 2>/dev/null || echo 0)" -lt "${FAKE_BUSY_IOS:-0}" ]; then
+    echo $(( $(cat "$T/ios-busy" 2>/dev/null || echo 0) + 1 )) > "$T/ios-busy"
+    echo '{ platform:iOS, id:x, name:Test iPhone, error:Test iPhone is busy: Copying shared cache symbols }'
+    return 70
+  fi
   if [ "${FAKE_NO_DEVICE:-0}" = 1 ] && [ ! -f "$T/nodev-done" ]; then
     : > "$T/nodev-done"
     echo 'error: Communication with Apple failed: Your team has no devices from which to generate a provisioning profile.'
@@ -296,8 +366,10 @@ xcodebuild() {
   fi
   if [ "$scheme" = SwingWatchWatch ]; then
     mkdir -p "$dd/Build/Products/Debug-watchos/SwingWatchWatch.app"
+    : > "$dd/Build/Products/Debug-watchos/SwingWatchWatch.app/embedded.mobileprovision"
   else
     mkdir -p "$dd/Build/Products/Debug-iphoneos/SwingWatch.app/Watch/SwingWatchWatch.app"
+    : > "$dd/Build/Products/Debug-iphoneos/SwingWatch.app/embedded.mobileprovision"
   fi
   echo 'Signing Identity: "Apple Development: tester@example.com (AB12CD34EF)"'
   echo "cd /Users/honggildong/SwingWatch"
@@ -316,6 +388,9 @@ xcrun() {
       [ -f "$T/watchos-installed" ] && echo "watchOS 26.5 (26.5 - 23T570) - com.apple.CoreSimulator.SimRuntime.watchOS-26-5"
       return 0 ;;
     "devicectl list devices"*) cp "$FX/${FAKE_DEVICES:-flow-devices.json}" "$json" ;;
+    "devicectl device info details"*66666666-7777-8888-9999-AAAAAAAAAAAA*)
+      [ "${FAKE_WATCH_ASLEEP:-0}" = 1 ] && return 1   # 잠든 워치: 터널이 열리지 않음
+      cp "$FX/flow-watch-details.json" "$json" ;;
     "devicectl device info details"*) return 1 ;;
     "devicectl device info ddiServices"*) return 0 ;;
     "devicectl manage pair"*) return 0 ;;
@@ -407,8 +482,12 @@ rm -f "$T/SwingWatch/.install/config"; FAKE_DEVICES=flow-two-iphones.json
 check "흐름 7: iPhone 두 대여도 설치 완료" "$(run_flow "$T/flow7.out")" "0"
 contains "흐름 7: 어느 iPhone인지 물어봄" "$T/flow7.out" "연결된 iPhone이 여러 대예요"
 check "흐름 7: 선택 저장" "$(sed -n 's/^iphone=//p' "$T/SwingWatch/.install/config")" "00008120-000C33333333401E"
-check "흐름 8: 다시 실행하면 묻지 않음" "$(run_flow "$T/flow8.out"; grep -c '여러 대예요' "$T/flow8.out")" "0
+check "흐름 8: Wi-Fi 폰을 골랐는데 다른 폰이 케이블로 꽂혀 있으면 다시 물음" "$(run_flow "$T/flow8.out"; grep -c '여러 대예요' "$T/flow8.out")" "0
+1"
+printf 'iphone=00008110-000A11111111801E\n' > "$T/SwingWatch/.install/config"
+check "흐름 8: 케이블로 꽂힌 폰을 골라뒀으면 묻지 않음" "$(run_flow "$T/flow8b.out"; grep -c '여러 대예요' "$T/flow8b.out")" "0
 0"
+contains "흐름 8: 그 폰으로 빌드" "$T/calls.log" "platform=iOS,id=00008110-000A11111111801E"
 FAKE_DEVICES=""
 
 # 사용자가 ~/SwingWatch 에서 직접 커밋한 변경은 업데이트 때 지우지 않는다
@@ -457,6 +536,41 @@ NEW_HEAD="$(git -C "$T/src" rev-parse HEAD)"
 check "흐름 14: 기록이 바뀐 원격도 설치 완료" "$(run_flow "$T/flow14.out")" "0"
 contains "흐름 14: 업데이트함" "$T/flow14.out" "최신 코드로 업데이트했어요"
 check "흐름 14: 새 기록으로 이동" "$(git -C "$T/SwingWatch" rev-parse HEAD)" "$NEW_HEAD"
+
+# 워치 빌드는 됐는데 iPhone이 잠시 busy → 워치는 다시 빌드하지 않고 iPhone만 다시
+rm -f "$T/ios-busy"; FAKE_BUSY_IOS=3
+check "흐름 15: iPhone이 잠시 busy여도 설치 완료" "$(run_flow "$T/flow15.out")" "0"
+check "흐름 15: 워치는 한 번만 빌드" "$(grep -c 'scheme SwingWatchWatch' "$T/calls.log")" "1"
+contains "흐름 15: 워치도 설치" "$T/flow15.out" "워치에 스윙워치가 설치됐어요"
+FAKE_BUSY_IOS=0
+
+# 빌드 직전 워치가 잠들어 깨어나지 않으면 3분 뒤 iPhone만 설치(무한정 기다리지 않음)
+FAKE_WATCH_ASLEEP=1
+check "흐름 16: 워치가 잠들어 있어도 설치 완료" "$(run_flow "$T/flow16.out")" "0"
+contains "흐름 16: 워치 없이 진행 안내" "$T/flow16.out" "워치에 연결되지 않아 이번엔 iPhone만"
+check "흐름 16: 워치 빌드 안 함" "$(grep -c 'scheme SwingWatchWatch' "$T/calls.log")" "0"
+FAKE_WATCH_ASLEEP=0
+
+# 워치가 없는 사용자: 한 번 s로 건너뛰면 다음부터는 묻지 않고 넘어간다
+FAKE_DEVICES=flow-watch-offline.json FAKE_WATCH_ASLEEP=1 FAKE_REPLY=s
+check "흐름 17: 워치 단계 s로 건너뛰어도 설치 완료" "$(run_flow "$T/flow17.out")" "0"
+contains "흐름 17: 건너뛰기 기억 안내" "$T/flow17.out" "다음 실행부터는"
+check "흐름 17: 건너뛰기 저장" "$(sed -n 's/^watch=//p' "$T/SwingWatch/.install/config")" "skip"
+FAKE_REPLY=""
+check "흐름 17: 다음 실행도 설치 완료" "$(run_flow "$T/flow17b.out")" "0"
+contains "흐름 17: 묻지 않고 건너뜀" "$T/flow17b.out" "지난번처럼 워치 단계는 건너뛸게요"
+check "흐름 17: 20분 기다리지 않음" "$(grep -c '20분 동안 워치가' "$T/flow17b.out")" "0"
+FAKE_DEVICES="" FAKE_WATCH_ASLEEP=0
+check "흐름 17: 워치가 준비되면 다시 워치도 설치" "$(run_flow "$T/flow17c.out"; grep -c '워치에 스윙워치가 설치됐어요' "$T/flow17c.out")" "0
+1"
+check "흐름 17: 건너뛰기 기억 해제" "$(sed -n 's/^watch=//p' "$T/SwingWatch/.install/config")" ""
+
+# 기기 지정 없는 빌드의 프로필에 이 iPhone이 없으면 그 결과로 설치하지 않는다
+FAKE_BUSY_ALWAYS=1 SWINGWATCH_SKIP_WATCH=1 FAKE_PROFILE_DEVICES="00008999-000000000000001E"
+check "흐름 18: 이 iPhone이 없는 프로필이면 설치하지 않음" "$(run_flow "$T/flow18.out")" "1"
+check "흐름 18: iPhone 설치 시도 안 함" "$(grep -c 'devicectl device install app --device 11111111' "$T/calls.log")" "0"
+contains "흐름 18: 오래 걸린다는 안내로 종료" "$T/flow18.out" "90분 넘게"
+FAKE_BUSY_ALWAYS=0 SWINGWATCH_SKIP_WATCH=0 FAKE_PROFILE_DEVICES="00008110-000A11111111801E 00008301-000B22222222202E 00008120-000C33333333401E"
 
 echo
 echo "통과 $PASS, 실패 $FAIL"

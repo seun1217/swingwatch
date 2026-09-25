@@ -42,9 +42,10 @@ iPhone을 세워 두고 연습하면, **카메라가 계속 스윙을 지켜보�
 
 ## 요구 사항
 
-- macOS + **Xcode 16 이상** (Xcode 26에서 확인됨)
-- iPhone (iOS 17+), Apple Watch (watchOS 10+)
+- Mac + **Xcode 26 또는 27** (App Store에서 설치. Xcode 27은 Apple 실리콘 Mac + macOS 26.6 이상 필요)
+- iPhone (iOS 17+), Apple Watch (watchOS 10+) — 기기 OS가 Xcode보다 새로우면 Xcode 업데이트 필요
 - Apple ID — **무료 계정으로 충분**합니다 (개발자 프로그램 결제 불필요)
+- Mac 저장 공간 30GB 이상 여유 (Xcode의 iOS·watchOS 구성요소)
 
 ## 시작하기
 

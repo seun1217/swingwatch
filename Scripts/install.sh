@@ -52,7 +52,7 @@ IPHONE_PAIR=""; IPHONE_TUNNEL=""; IPHONE_TRANSPORT=""
 WATCH_ID=""; WATCH_UDID=""; WATCH_NAME=""; WATCH_OS=""; WATCH_DEVMODE=""
 WATCH_PAIR=""; WATCH_TUNNEL=""; WATCH_READY=0
 DERIVED=""; APP_PATH=""; WATCH_APP_PATH=""
-OS_TOO_NEW=""; BUILD_ERR=""; PLATFORMS_DOWNLOADED=0; POLL_REPLY=""; PREFERRED_IPHONE=""; LAST_DEVICES_LOG=""
+OS_TOO_NEW=""; BUILD_ERR=""; PLATFORMS_DOWNLOADED=0; POLL_REPLY=""; POLL_ENTER=0; PREFERRED_IPHONE=""; LAST_DEVICES_LOG=""
 
 # ----------------------------------------------------------------------------
 # 화면 출력
@@ -101,7 +101,7 @@ stop_job() {   # 프로세스와 그 자식들을 끝낸다
 }
 cleanup() {
   stop_job "$BG_PID"
-  stop_job "${PLATFORM_PID:-}"
+  # 구성요소 다운로드(수 GB)는 멈추지 않는다. 다음 실행이 이어서 기다린다.
   rm -rf "$WORK" 2>/dev/null
 }
 on_interrupt() {
@@ -115,9 +115,9 @@ have_tty() { ( : </dev/tty ) 2>/dev/null; }
 
 # 최대 $1초 기다린다. 그 사이 Enter를 치면 바로 반환하고, 입력한 글자는 POLL_REPLY에 담긴다.
 poll_wait() {
-  POLL_REPLY=""
+  POLL_REPLY=""; POLL_ENTER=0
   if have_tty; then
-    read -r -t "$1" POLL_REPLY </dev/tty 2>/dev/null || POLL_REPLY=""
+    if read -r -t "$1" POLL_REPLY </dev/tty 2>/dev/null; then POLL_ENTER=1; else POLL_REPLY=""; fi
   else
     sleep "$1"
   fi
@@ -126,6 +126,8 @@ wants_skip() { case "$POLL_REPLY" in s|S|ㄴ) return 0 ;; esac; return 1; }
 
 press_enter() {
   have_tty || return 0
+  # 빌드 중에 눌러 둔 Enter가 쌓여 있으면 안내를 읽기도 전에 넘어가 버린다 → 먼저 비운다.
+  while read -r -t 1 _ </dev/tty 2>/dev/null; do :; done
   printf '\n    %s다 됐으면 Enter 키를 누르세요…%s ' "$C_DIM" "$C_0"
   read -r _ </dev/tty || true
 }
@@ -153,7 +155,7 @@ run_with_progress() {
   pid=$!
   BG_PID=$pid
   printf '    %s' "$label"
-  while kill -0 "$pid" 2>/dev/null; do
+  while ps -p "$pid" >/dev/null 2>&1; do
     sleep 5; elapsed=$((elapsed + 5))
     if [ $((elapsed % 60)) -eq 0 ]; then printf ' %d분' $((elapsed / 60)); else printf '.'; fi
   done
@@ -288,15 +290,14 @@ prepare_xcode() {
       ok "Xcode 라이선스 동의"
     fi
     if [ "$need_first" = 1 ]; then
-      sudo -v || die "관리자 암호 확인에 실패했어요."   # 백그라운드 작업은 암호를 물을 수 없으니 미리 인증
-      run_with_progress "Xcode 구성요소 설치 중(몇 분)" "$WORK/firstlaunch.log" \
-        sudo "$DEVELOPER_DIR/usr/bin/xcodebuild" -runFirstLaunch \
-        || {
+      info "Xcode 구성요소를 설치하는 중이에요(몇 분). 진행 표시가 나와요."
+      # 관리자 권한 작업은 앞에서 실행한다(백그라운드면 진행 확인·control+C 정리가 안 된다).
+      if sudo "$DEVELOPER_DIR/usr/bin/xcodebuild" -runFirstLaunch 2>&1 | tee "$WORK/firstlaunch.log"; then :; else
           tail -15 "$WORK/firstlaunch.log" | sed 's/^/      /'
           mkdir -p "$HOME/Library/Logs" && redact < "$WORK/firstlaunch.log" > "$HOME/Library/Logs/swingwatch-firstlaunch.log"
           die "Xcode 구성요소 설치에 실패했어요. Xcode를 직접 한 번 실행해 안내를 따른 뒤 다시 시도하세요.
     (기록: ~/Library/Logs/swingwatch-firstlaunch.log)"
-        }
+      fi
       ok "Xcode 구성요소 설치"
     fi
   fi
@@ -474,15 +475,19 @@ xt_candidate_teams() {
       done
     fi
     xt_keychain_teams | while read -r tid; do printf '%s\t?\tcert\t-\t-\t-\n' "$tid"; done
-  } | awk -F '\t' -v signed_in="$signed_in" -v live="$(printf '%s\n' "$live_keys" | head -1)" '
+  } | awk -F '\t' -v signed_in="$signed_in" -v live="$(printf '%s\n' "$live_keys" | head -1)" \
+        -v late="${XT_LATE:-0}" '
       # 로그아웃한(다른) Apple ID의 팀은 쓰지 않는다. 그 팀의 키체인 인증서도 제외.
       # 예외: 캐시 키와 로그인 계정 키의 형식이 아예 다르면(이메일↔UUID, Xcode가 형식을 바꾼 경우) 대비용으로 남김.
       $3 == "stale" { bad[$1] = 1
                       if ($6 == "IDEProvisioningTeamByIdentifier" && (($4 ~ /@/) != (live ~ /@/)) && !sseen[$1]++) stale[++ns] = $0
                       next }
-      $3 == "cert" && ($1 in bad) { next }
+      # 제외한 팀의 인증서는 따로 두었다가, 한참(90초) 기다려도 다른 후보가 없을 때만 쓴다
+      # (계정을 지웠다 다시 추가해 캐시 키만 바뀐 경우 대비. 틀린 팀이면 빌드에서 "계정" 안내가 나온다).
+      $3 == "cert" && ($1 in bad) { if (!cseen[$1]++) oldcert[++nc] = $0; next }
       !seen[$1]++ { print; np++ }
-      END { if (np == 0 && signed_in == 1) for (i = 1; i <= ns; i++) print stale[i] }
+      END { if (np == 0 && signed_in == 1) { for (i = 1; i <= ns; i++) print stale[i]
+                                             if (late == 1 && ns == 0) for (i = 1; i <= nc; i++) print oldcert[i] } }
     '
 }
 
@@ -558,7 +563,8 @@ select_team() {
   local start=$SECONDS shown=0 hinted=0 rc pane
   pane="$(accounts_pane_name)"
   while :; do
-    rc=0; TEAM_ID=$(xt_pick_team) || rc=$?
+    XT_LATE=0; [ $((SECONDS - start)) -ge 90 ] && XT_LATE=1
+    rc=0; TEAM_ID=$(XT_LATE=$XT_LATE xt_pick_team) || rc=$?
     if [ $rc -eq 0 ] && [ -n "$TEAM_ID" ]; then break; fi
     [ $rc -eq 2 ] && die "서명 팀을 고르지 않아 설치를 멈췄어요."
     if [ $shown -eq 0 ]; then
@@ -623,15 +629,15 @@ pick_iphone() {
     [ "$reality" = "simulated" ] && continue
     [ "$platform" = "iOS" ] || continue
     case "$dtype" in iPhone|-) ;; *) continue ;; esac
-    if [ -n "${SWINGWATCH_DEVICE:-}" ] && [ "$ident" != "$SWINGWATCH_DEVICE" ] && [ "$udid" != "$SWINGWATCH_DEVICE" ]; then
+    # 설치할 iPhone이 정해졌으면 그 iPhone만 본다(재시동 중이어도 다른 폰으로 넘어가지 않게).
+    if [ -n "$PREFERRED_IPHONE" ] && [ "$ident" != "$PREFERRED_IPHONE" ] && [ "$udid" != "$PREFERRED_IPHONE" ]; then
       continue
     fi
+    # 지금 닿는 폰(방금 꽂아 아직 [신뢰] 전인 폰 포함) > 예전에 연결했지만 지금은 꺼진 폰
     rank=1
-    [ "$pairing" = "paired" ] && rank=$((rank + 4))
-    if [ "$tunnel" != "unavailable" ] && [ "$transport" != "-" ]; then rank=$((rank + 2)); fi
+    if [ "$tunnel" != "unavailable" ] && [ "$transport" != "-" ]; then rank=$((rank + 4)); fi
+    [ "$pairing" = "paired" ] && rank=$((rank + 2))
     [ "$transport" = "wired" ] && rank=$((rank + 1))
-    if [ -n "$PREFERRED_IPHONE" ] && [ "$udid" = "$PREFERRED_IPHONE" ] \
-       && [ "$tunnel" != unavailable ] && [ "$transport" != "-" ]; then rank=$((rank + 20)); fi
     if [ "$rank" -gt "$best" ]; then
       best=$rank; IPHONE_ID=$ident; IPHONE_UDID=$udid; IPHONE_NAME=$name; IPHONE_OS=$osver
       IPHONE_DEVMODE=$devmode; IPHONE_PAIR=$pairing; IPHONE_TUNNEL=$tunnel; IPHONE_TRANSPORT=$transport
@@ -659,12 +665,13 @@ pick_watch() {
   [ -n "$WATCH_ID" ]
 }
 
-# 지금 연결 가능한 iPhone들: UDID<TAB>이름<TAB>iOS
+# 지금 연결 가능한 iPhone들: UDID<TAB>이름<TAB>iOS<TAB>연결방식
 reachable_iphones() {
   awk -F'\t' '$11 != "simulated" && $3 == "iOS" && ($4 == "iPhone" || $4 == "-") &&
-               $9 == "paired" && $7 != "unavailable" && $8 != "-" && $2 != "-" { print $2 "\t" $5 "\t" $10 }' \
+               $9 == "paired" && $7 != "unavailable" && $8 != "-" && $2 != "-" { print $2 "\t" $5 "\t" $10 "\t" $8 }' \
     "$WORK/devices.tsv"
 }
+in_list() { printf '%s\n' "$2" | cut -f1 | grep -qxF -- "$1"; }
 
 # 상태 이름: none | unpaired | offline | devmode | ready
 iphone_state() {
@@ -678,29 +685,44 @@ iphone_state() {
 
 select_iphone() {
   step "iPhone 확인"
-  local state last="" start=$SECONDS nudged=0 line phones n pick devmode_shown=0 msg
-  PREFERRED_IPHONE="${SWINGWATCH_DEVICE:-$(config_get iphone)}"
+  local state last="" start=$SECONDS nudged=0 line phones n pick devmode_shown=0 msg decided=0 saved wired
+  saved="$(config_get iphone)"
+  PREFERRED_IPHONE="${SWINGWATCH_DEVICE:-}"
+  [ -n "$PREFERRED_IPHONE" ] && decided=1
   while :; do
     refresh_devices
-    # 연결된 iPhone이 여러 대이고 아직 고른 적이 없으면 물어본다(엉뚱한 폰에 설치하지 않도록).
-    phones="$(reachable_iphones)"
-    n=$(printf '%s' "$phones" | grep -c . || true)
-    # 전에 고른 iPhone이 지금 연결돼 있지 않으면 그 선택은 잊는다(꺼진 폰을 기다리지 않도록).
-    if [ "$n" -ge 1 ] && [ -z "${SWINGWATCH_DEVICE:-}" ] \
-       && ! printf '%s\n' "$phones" | cut -f1 | grep -qxF "${PREFERRED_IPHONE:-none}"; then
-      PREFERRED_IPHONE=""
-    fi
-    if [ "$n" -gt 1 ] && ! printf '%s\n' "$phones" | cut -f1 | grep -qxF "${PREFERRED_IPHONE:-none}"; then
-      [ -n "$last" ] && echo
-      info "연결된 iPhone이 여러 대예요. 스윙워치를 설치할 iPhone을 골라주세요:"
-      printf '%s\n' "$phones" | awk -F'\t' '{printf "      %d) %s (iOS %s)\n", NR, $2, $3}'
-      pick="$(choose "$n")"
-      PREFERRED_IPHONE="$(printf '%s\n' "$phones" | sed -n "${pick}p" | cut -f1)"
-      config_set iphone "$PREFERRED_IPHONE"
-      last=""
+    # 어느 iPhone에 설치할지 한 번 정하고 나면 그 폰만 본다.
+    #  - 전에 고른 폰이 연결돼 있고, 케이블로 꽂힌 다른 폰이 없으면 → 그 폰
+    #  - 연결된 폰이 여러 대면 → 묻는다
+    #  - 한 대뿐이면 → 케이블로 꽂혀 있을 때만 바로 정한다(Wi-Fi로만 보이는 폰은 확인을 받는다)
+    if [ $decided = 0 ]; then
+      phones="$(reachable_iphones)"
+      n=$(printf '%s' "$phones" | grep -c . || true)
+      wired="$(printf '%s\n' "$phones" | awk -F'\t' '$4 == "wired" {print $1}')"
+      if [ "$n" -ge 1 ]; then
+        if [ -n "$saved" ] && in_list "$saved" "$phones" && { [ -z "$wired" ] || in_list "$saved" "$wired"; }; then
+          PREFERRED_IPHONE="$saved"; decided=1
+        elif [ "$n" -gt 1 ]; then
+          [ -n "$last" ] && echo
+          info "연결된 iPhone이 여러 대예요. 스윙워치를 설치할 iPhone을 골라주세요:"
+          printf '%s\n' "$phones" | awk -F'\t' '{printf "      %d) %s (iOS %s%s)\n", NR, $2, $3, ($4 == "wired" ? ", 케이블" : ", Wi-Fi")}'
+          pick="$(choose "$n")"
+          PREFERRED_IPHONE="$(printf '%s\n' "$phones" | sed -n "${pick}p" | cut -f1)"; decided=1
+          last=""
+        elif [ -n "$wired" ]; then
+          PREFERRED_IPHONE="$wired"; decided=1
+        elif ! have_tty || { [ "$last" = wifi_only ] && [ "$POLL_ENTER" = 1 ]; }; then
+          PREFERRED_IPHONE="$(printf '%s\n' "$phones" | head -1 | cut -f1)"; decided=1
+        fi
+        [ $decided = 1 ] && config_set iphone "$PREFERRED_IPHONE"
+      fi
     fi
     pick_iphone || true
     state="$(iphone_state)"
+    # Wi-Fi로만 보이는 (확인 안 된) 폰: 케이블 연결을 기다리거나, 맞다고 하면 그 폰으로.
+    if [ $decided = 0 ] && [ "${n:-0}" -ge 1 ] && [ "$state" != none ] && [ "$state" != unpaired ]; then
+      state=wifi_only
+    fi
     if [ "$state" = devmode ]; then
       # 목록의 '개발자 모드 꺼짐'은 가끔 틀린다 → 기기에 직접 물어본다.
       line="$(device_details "$IPHONE_ID")"
@@ -721,6 +743,9 @@ select_iphone() {
             nudged=1
             xcrun devicectl manage pair --device "$IPHONE_ID" --timeout 60 >"$WORK/pair.log" 2>&1 &
           fi ;;
+        wifi_only) todo "Wi-Fi로 연결된 '${IPHONE_NAME}'이(가) 보여요.
+스윙워치를 설치할 iPhone을 케이블로 Mac에 연결해 주세요.
+이 iPhone이 맞다면 그냥 Enter를 누르세요." ;;
         offline)
           if [ $devmode_shown -eq 1 ]; then
             msg="iPhone이 재시동 중이면 켜질 때까지 기다렸다가 잠금을 풀어주세요."
@@ -788,6 +813,16 @@ setup_watch() {
   if [ "${SWINGWATCH_SKIP_WATCH:-0}" = 1 ]; then info "워치 단계는 건너뛸게요."; return; fi
   local state last="" start=$SECONDS nudged=0 line win ios_major
   win="$(devices_window_name)"
+  # 지난번에 워치를 건너뛰었고 지금도 워치가 준비돼 있지 않으면 바로 넘어간다(원하면 Enter로 워치 단계 진행).
+  if [ "$(config_get watch)" = skip ]; then
+    refresh_devices
+    if ! pick_watch || [ "$(watch_state)" != ready ]; then
+      info "지난번처럼 워치 단계는 건너뛸게요. 워치도 설치하려면 10초 안에 Enter를 누르세요."
+      poll_wait 10
+      [ "$POLL_ENTER" = 1 ] || return
+    fi
+    config_set watch ""
+  fi
   ios_major="${IPHONE_OS%%.*}"; case "$ios_major" in ''|*[!0-9]*) ios_major=0 ;; esac
   if [ "$IPHONE_TRANSPORT" != wired ] && [ "$ios_major" -lt 27 ]; then
     todo "워치에 설치하려면 iPhone을 케이블로 Mac에 연결해 두세요(iOS 26 이하는 꼭 필요해요)."
@@ -803,6 +838,8 @@ setup_watch() {
         [ "$(printf '%s\n' "$line" | cut -f6)" = "enabled" ] && WATCH_DEVMODE=enabled
         WATCH_TUNNEL="$(printf '%s\n' "$line" | cut -f7)"
         state="$(watch_state)"
+      else
+        state=offline   # 워치에 닿지 않으면 개발자 모드 값을 믿을 수 없다(자는 중일 가능성이 큼)
       fi
     fi
     log "watch state=$state id=$WATCH_ID udid=$WATCH_UDID"
@@ -839,7 +876,11 @@ setup_watch() {
     printf '.'
     if [ $((SECONDS - start)) -ge 1200 ]; then echo; warn "20분 동안 워치가 준비되지 않아 iPhone만 설치할게요."; return; fi
     poll_wait 5
-    if wants_skip; then echo; info "워치는 건너뛸게요. 나중에 이 명령을 다시 실행하면 워치도 설치돼요."; return; fi
+    if wants_skip; then
+      echo; info "워치는 건너뛸게요. 다음 실행부터는 워치가 보이지 않으면 묻지 않고 넘어가요."
+      config_set watch skip
+      return
+    fi
   done
   [ -n "$last" ] && echo
   ok "Apple Watch: ${WATCH_NAME} (watchOS ${WATCH_OS})"
@@ -913,7 +954,7 @@ Xcode의 Apple ID 로그인([Settings…] → [$pane])을 확인한 뒤 다시 �
 # 하는 동안 백그라운드로 받는다. xcodebuild -downloadPlatform의 종료 코드는 믿을 수 없어
 # 받은 뒤 simctl로 실제 설치 여부를 확인한다. 관리자 암호는 필요 없다.
 # ----------------------------------------------------------------------------
-PLATFORM_PID=""
+PLATFORM_PID=""; PLATFORM_EXTERNAL=0
 
 # $1: iOS|watchOS, $2: iphoneos|watchos → SDK와 같은 버전의 런타임이 있으면 0
 platform_installed() {
@@ -948,25 +989,36 @@ start_platform_downloads() {
   if [ "$free_gb" -lt 25 ]; then
     warn "Mac 저장 공간이 ${free_gb}GB 남았어요. 구성요소에 20GB 이상 필요해서 실패할 수 있어요."
   fi
+  if pgrep -f -- "-downloadPlatform" >/dev/null 2>&1; then
+    info "지난번에 시작한 구성요소 내려받기가 아직 진행 중이에요. 이어서 기다릴게요."
+    PLATFORM_EXTERNAL=1
+    return
+  fi
   info "Xcode에 필요한 구성요소($missing)를 백그라운드로 내려받기 시작할게요."
   info "몇 GB라 10~30분 걸려요. 그동안 다음 단계를 함께 진행해요."
   info "(Xcode에서 'Components/플랫폼'을 내려받으라는 창이 떠도 닫으셔도 돼요)"
   # shellcheck disable=SC2086  # missing은 공백으로 구분된 목록
-  ( download_platform_list $missing ) > "$WORK/platform-download.log" 2>&1 &
+  # 도우미를 멈추거나 터미널을 닫아도 다운로드는 계속되게 한다(다음 실행이 이어서 기다림).
+  ( trap '' HUP INT TERM; download_platform_list $missing ) > "$STATE_DIR/platform-download.log" 2>&1 &
   PLATFORM_PID=$!
   log "platform download started: $missing (pid $PLATFORM_PID)"
 }
 
+platform_download_running() {
+  if [ -n "$PLATFORM_PID" ]; then ps -p "$PLATFORM_PID" >/dev/null 2>&1; return; fi
+  [ "$PLATFORM_EXTERNAL" = 1 ] && pgrep -f -- "-downloadPlatform" >/dev/null 2>&1
+}
+
 finish_platform_downloads() {
   local missing elapsed=0 pct had_download=0
-  [ -n "$PLATFORM_PID" ] && had_download=1
-  if [ -n "$PLATFORM_PID" ] && kill -0 "$PLATFORM_PID" 2>/dev/null; then
+  { [ -n "$PLATFORM_PID" ] || [ "$PLATFORM_EXTERNAL" = 1 ]; } && had_download=1
+  if platform_download_running; then
     step "Xcode 구성요소 내려받기 마무리"
     printf '    내려받는 중'
-    while kill -0 "$PLATFORM_PID" 2>/dev/null; do
+    while platform_download_running; do
       sleep 5; elapsed=$((elapsed + 5))
       if [ $((elapsed % 60)) -eq 0 ]; then
-        pct="$(tail -c 400 "$WORK/platform-download.log" 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)?%' | tail -1)"
+        pct="$(tail -c 400 "$STATE_DIR/platform-download.log" 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)?%' | tail -1)"
         printf ' %d분%s' $((elapsed / 60)) "${pct:+($pct)}"
       else
         printf '.'
@@ -977,7 +1029,7 @@ finish_platform_downloads() {
   if [ -n "$PLATFORM_PID" ]; then
     wait "$PLATFORM_PID" 2>/dev/null
     PLATFORM_PID=""
-    { echo "----- platform download"; cat "$WORK/platform-download.log"; } | redact >> "$LOG_FILE" 2>/dev/null
+    { echo "----- platform download"; cat "$STATE_DIR/platform-download.log"; } | redact >> "$LOG_FILE" 2>/dev/null
   fi
   missing="$(missing_platforms)"
   if [ -z "$missing" ]; then
@@ -1045,10 +1097,13 @@ build_apps() {
 
     # 워치를 먼저: 워치를 대상으로 빌드해야 무료 팀 프로필에 워치가 등록된다.
     [ "$WATCH_READY" = 1 ] && [ "$WATCH_WOKEN" = 0 ] && wake_watch_for_build
-    if [ "$WATCH_READY" = 1 ]; then
-      if ! signed_build "$WATCH_SCHEME" "platform=watchOS,id=$WATCH_UDID" "워치 앱 빌드 중" watch; then
+    # 이미 이 앱 ID로 워치 빌드가 끝났으면(iPhone 빌드만 다시 하는 경우) 워치는 다시 빌드하지 않는다.
+    if [ "$WATCH_READY" = 1 ] && [ "$WATCH_BUILT_PREFIX" != "$BUNDLE_PREFIX" ]; then
+      if signed_build "$WATCH_SCHEME" "platform=watchOS,id=$WATCH_UDID" "워치 앱 빌드 중" watch; then
+        WATCH_BUILT_PREFIX="$BUNDLE_PREFIX"
+      else
         if [ "$BUILD_ERR" = busy ]; then
-          if [ $BUSY_WAITS -ge 40 ]; then
+          if [ -n "$BUSY_START" ] && [ $((SECONDS - BUSY_START)) -ge 1200 ]; then
             # 워치 준비가 20분 넘게 걸리면 iPhone부터 설치하고 워치는 다음 실행으로 미룬다.
             warn "워치 준비가 오래 걸려서 iPhone 앱부터 설치할게요. 워치는 나중에 이 명령을 다시 실행하면 돼요."
             WATCH_READY=0
@@ -1065,8 +1120,9 @@ build_apps() {
         if [ "$WATCH_READY" = 1 ] && [ "$BUILD_ERR" = destination ] && [ "$WATCH_RETRIED" = 0 ]; then
           # 워치가 잠들었을 가능성이 가장 크다 → 한 번 깨우고 다시.
           WATCH_RETRIED=1
-          todo "Xcode가 워치를 찾지 못했어요. 워치 화면을 깨워 잠금을 풀고 Mac 가까이 두세요(충전기 위 권장)."
-          press_enter
+          todo "Xcode가 워치를 찾지 못했어요. 워치 화면을 깨워 잠금을 풀고 Mac 가까이 두세요(충전기 위 권장).
+30초 뒤 다시 시도해요(준비됐으면 Enter)."
+          poll_wait 30
           attempts=$((attempts - 1)); continue
         fi
         [ "$WATCH_READY" = 1 ] && case "$BUILD_ERR" in
@@ -1083,11 +1139,16 @@ build_apps() {
       break
     fi
     if [ "$BUILD_ERR" = busy ]; then
-      # 워치를 설치하지 않는데 iPhone이 '워치 준비 중'으로 묶여 있으면: 전에 등록된 iPhone이면
-      # 기기를 지정하지 않는 빌드로도 서명된다(팀 프로필에 이미 들어 있으므로).
-      if [ "$WATCH_READY" != 1 ] && [ "$BUSY_WAITS" -ge 2 ] && [ "${GENERIC_TRIED:-0}" = 0 ]; then
+      # iPhone이 '워치 준비 중'으로 묶여 있어도, 워치를 안 하거나 워치 빌드가 이미 끝났다면
+      # 기기를 지정하지 않는 빌드로 서명할 수 있다(이 iPhone이 팀 프로필에 이미 있을 때만 사용).
+      if { [ "$WATCH_READY" != 1 ] || [ "$WATCH_BUILT_PREFIX" = "$BUNDLE_PREFIX" ]; } \
+         && [ "$BUSY_WAITS" -ge 2 ] && [ "${GENERIC_TRIED:-0}" = 0 ]; then
         GENERIC_TRIED=1
-        if signed_build "$IOS_SCHEME" "generic/platform=iOS" "iPhone 앱 빌드 중" ios; then break; fi
+        if signed_build "$IOS_SCHEME" "generic/platform=iOS" "iPhone 앱 빌드 중" ios \
+           && profile_has_device "$DERIVED/Build/Products/Debug-iphoneos/$PROJECT_NAME.app" "$IPHONE_UDID"; then
+          break
+        fi
+        log "generic build not usable (profile lacks this iPhone)"
       fi
       wait_device_busy; attempts=$((attempts - 1)); continue
     fi
@@ -1107,14 +1168,14 @@ build_apps() {
 }
 
 # 구성요소 다운로드 등을 기다리는 사이 워치가 잠들었을 수 있다 → 빌드 직전에 깨운다.
-WATCH_WOKEN=0; WATCH_RETRIED=0
+WATCH_WOKEN=0; WATCH_RETRIED=0; WATCH_BUILT_PREFIX=""
 wake_watch_for_build() {
   WATCH_WOKEN=1
   local start=$SECONDS line
   info "워치 앱을 빌드할게요. 워치 화면을 켜서 잠금을 풀고 Mac 가까이 두세요(충전기 위 권장)."
   while :; do
     line="$(device_details "$WATCH_ID")"
-    [ -n "$line" ] && WATCH_TUNNEL="$(printf '%s\n' "$line" | cut -f7)"
+    if [ -n "$line" ]; then WATCH_TUNNEL="$(printf '%s\n' "$line" | cut -f7)"; else WATCH_TUNNEL=unavailable; fi
     [ "$(watch_state)" = ready ] && return 0
     if [ $((SECONDS - start)) -ge 180 ]; then
       warn "워치에 연결되지 않아 이번엔 iPhone만 설치할게요. 나중에 이 명령을 다시 실행하면 워치도 설치돼요."
@@ -1127,17 +1188,26 @@ wake_watch_for_build() {
 
 # 기기(특히 워치)를 처음 개발용으로 준비하는 동안 Xcode는 기기를 "busy"로 표시한다.
 # 기다리면 풀린다(워치는 길게는 1시간 이상). 재시동하면 준비가 처음부터 다시 시작되니 권하지 않는다.
-BUSY_WAITS=0
+BUSY_WAITS=0; BUSY_START=""; BUSY_SHOWN=0
 wait_device_busy() {
+  local elapsed
   BUSY_WAITS=$((BUSY_WAITS + 1))
+  [ -n "$BUSY_START" ] || BUSY_START=$SECONDS
+  elapsed=$((SECONDS - BUSY_START))
   if [ $BUSY_WAITS -eq 1 ]; then
     info "Xcode가 기기를 개발용으로 준비하는 중이에요(처음 한 번). 워치가 있으면 오래 걸릴 수 있어요."
     info "워치 화면을 켜둔 채(충전기 위 권장) 기다려 주세요. 자동으로 다시 시도해요."
-  elif [ $((BUSY_WAITS % 4)) -eq 0 ]; then
-    info "아직 준비 중이에요… ($((BUSY_WAITS / 2))분째)"
+    [ "$WATCH_READY" = 1 ] && info "워치는 나중에 하고 iPhone부터 설치하려면 s 를 입력하고 Enter."
+  elif [ $((elapsed / 300)) -gt $BUSY_SHOWN ]; then
+    BUSY_SHOWN=$((elapsed / 300))
+    info "아직 준비 중이에요… ($((elapsed / 60))분째)"
   fi
-  [ $BUSY_WAITS -gt 180 ] && die "기기 준비가 90분 넘게 끝나지 않았어요. 워치를 충전기에 올려둔 채 다시 실행해 보세요."
-  sleep 30
+  [ $elapsed -ge 5400 ] && die "기기 준비가 90분 넘게 끝나지 않았어요. 워치를 충전기에 올려둔 채 다시 실행해 보세요."
+  poll_wait 30
+  if wants_skip && [ "$WATCH_READY" = 1 ]; then
+    WATCH_READY=0
+    info "워치는 건너뛰고 iPhone 앱부터 설치할게요. 나중에 이 명령을 다시 실행하면 워치도 설치돼요."
+  fi
 }
 
 # 실패 원인에 따라 자동 복구를 시도한다. 0 = 다시 빌드, 1 = 포기
@@ -1180,7 +1250,7 @@ handle_build_failure() {
 profile_has_device() {
   [ -f "$1/embedded.mobileprovision" ] || return 1
   security cms -D -i "$1/embedded.mobileprovision" > "$WORK/profile.plist" 2>/dev/null || return 1
-  /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$WORK/profile.plist" 2>/dev/null | grep -qi -- "$2"
+  grep -qiF -- "<string>$2</string>" "$WORK/profile.plist"
 }
 
 # ----------------------------------------------------------------------------
@@ -1227,6 +1297,9 @@ install_iphone() {
       applimit) todo "무료 Apple ID로 한 iPhone에 설치할 수 있는 앱 수(3개)를 넘었어요.
 예전에 Xcode로 설치한 다른 앱을 iPhone에서 삭제한 뒤 계속하세요."; press_enter ;;
       transient) sleep 3 ;;
+      profile) todo "이 iPhone이 아직 서명 프로필에 등록되지 않았어요. iPhone을 케이블로 연결하고 잠금을 푼 채
+몇 분 뒤 이 명령을 다시 실행해 주세요."
+               die "iPhone에 설치하지 못했어요." ;;
       *) grep -iE "error|fail" "$WORK/install-iphone.log" | tail -5 | sed 's/^/      /'
          die "iPhone에 설치하지 못했어요." ;;
     esac
