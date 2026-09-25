@@ -1,0 +1,184 @@
+{
+  "info": {
+    "arguments": [
+      "devicectl",
+      "list",
+      "devices",
+      "--json-output",
+      "tmp_devices.json",
+      "--timeout",
+      "5"
+    ],
+    "commandType": "devicectl.list.devices",
+    "environment": {
+      "TERM": "xterm-256color"
+    },
+    "jsonVersion": 3,
+    "outcome": "success",
+    "version": "506.6"
+  },
+  "result": {
+    "devices": [
+      {
+        "capabilities": [
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.acquireusageassertion",
+            "name": "Acquire Usage Assertion"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.connectdevice",
+            "name": "Connect to Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.tags",
+            "name": "Modify Tags"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.default.user.credentials",
+            "name": "Modify credentials for default users for a device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.unpairdevice",
+            "name": "Unpair Device"
+          }
+        ],
+        "connectionProperties": {
+          "authenticationType": "manualPairing",
+          "isMobileDeviceOnly": false,
+          "lastConnectionDate": "2025-12-02T22:51:37.806Z",
+          "pairingState": "paired",
+          "potentialHostnames": [
+            "31601bd4.coredevice.local",
+            "aa254d94.coredevice.local",
+            "a6817047.coredevice.local"
+          ],
+          "transportType": "localNetwork",
+          "tunnelState": "disconnected",
+          "tunnelTransportProtocol": "tcp"
+        },
+        "deviceProperties": {
+          "ddiServicesAvailable": false,
+          "developerModeStatus": "disabled",
+          "hasInternalOSBuild": false,
+          "name": "Test Apple Watch",
+          "osBuildUpdate": "23S37",
+          "osVersionNumber": "26.1",
+          "screenViewingURL": "devices://device/open?id=86D70A1D-D2C2-38C0-AB94-D7BC3A027956"
+        },
+        "hardwareProperties": {
+          "cpuType": {
+            "name": "arm64_32",
+            "subType": 1,
+            "type": 33554444
+          },
+          "deviceType": "appleWatch",
+          "ecid": 258244776274378,
+          "hardwareModel": "N143bAP",
+          "isProductionFused": true,
+          "marketingName": "Apple Watch SE",
+          "platform": "watchOS",
+          "productType": "Watch6,11",
+          "reality": "physical",
+          "serialNumber": "SERIAL73DB0F",
+          "thinningProductType": "Watch6,11",
+          "udid": "00008301-DBB25AAB8DA9F85C"
+        },
+        "identifier": "86D70A1D-D2C2-38C0-AB94-D7BC3A027956",
+        "tags": [],
+        "visibilityClass": "default"
+      },
+      {
+        "capabilities": [
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.acquireusageassertion",
+            "name": "Acquire Usage Assertion"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.connectdevice",
+            "name": "Connect to Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.tags",
+            "name": "Modify Tags"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.default.user.credentials",
+            "name": "Modify credentials for default users for a device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.unpairdevice",
+            "name": "Unpair Device"
+          }
+        ],
+        "connectionProperties": {
+          "authenticationType": "manualPairing",
+          "isMobileDeviceOnly": false,
+          "lastConnectionDate": "2026-03-31T21:15:00.000Z",
+          "pairingState": "paired",
+          "potentialHostnames": [
+            "49648333.coredevice.local",
+            "86a434e7.coredevice.local",
+            "32bdb641.coredevice.local"
+          ],
+          "transportType": "wired",
+          "tunnelState": "disconnected",
+          "tunnelTransportProtocol": "tcp"
+        },
+        "deviceProperties": {
+          "bootState": "booted",
+          "bootedFromSnapshot": true,
+          "bootedSnapshotName": "com.apple.os.update-BFDE8EAA6C6621BA77570AFF9D608B84BF393B3604D8DD9673A0AF855B2F9EEF",
+          "ddiServicesAvailable": false,
+          "developerModeStatus": "enabled",
+          "hasInternalOSBuild": false,
+          "name": "Test iPhone",
+          "osBuildUpdate": "23D771330a",
+          "osVersionNumber": "26.3.1 (a)",
+          "providerSpecificValues": {
+            "hasAMRestorableDeviceRef": "true"
+          },
+          "rootFileSystemIsWritable": false,
+          "screenViewingURL": "devices://device/open?id=C6D172B7-D08D-C76E-22E7-B5B36A8A33A2",
+          "supportsCheckedAllocations": true
+        },
+        "hardwareProperties": {
+          "cpuType": {
+            "name": "arm64e",
+            "subType": 2,
+            "type": 16777228
+          },
+          "deviceType": "iPhone",
+          "ecid": 48844458553548,
+          "hardwareModel": "V53AP",
+          "internalStorageCapacity": 256000000000,
+          "isProductionFused": true,
+          "marketingName": "iPhone 17 Pro",
+          "platform": "iOS",
+          "productType": "iPhone18,1",
+          "reality": "physical",
+          "serialNumber": "SERIAL225C68",
+          "supportedCPUTypes": [
+            {
+              "name": "arm64e",
+              "subType": 2,
+              "type": 16777228
+            },
+            {
+              "name": "arm64",
+              "subType": 0,
+              "type": 16777228
+            }
+          ],
+          "supportedDeviceFamilies": [
+            1
+          ],
+          "thinningProductType": "iPhone18,1",
+          "udid": "00008150-55829641996090B6"
+        },
+        "identifier": "C6D172B7-D08D-C76E-22E7-B5B36A8A33A2",
+        "tags": [],
+        "visibilityClass": "default"
+      }
+    ]
+  }
+}

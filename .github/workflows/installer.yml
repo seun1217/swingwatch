@@ -1,0 +1,48 @@
+name: installer
+
+# 설치 스크립트(Scripts/install.sh) 점검:
+#  1) 정적 검사(shellcheck)
+#  2) macOS 기본 bash 3.2 + 실제 osascript/defaults로 자체 테스트
+#  3) 사용자가 붙여 넣는 한 줄 명령을 그대로(CI 모드) 실행 → 코드 받기 → 빌드 → 앱 구조 확인
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "Scripts/**"
+      - ".github/workflows/installer.yml"
+      - "SwingWatch.xcodeproj/**"
+  workflow_dispatch:
+
+jobs:
+  installer:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-26, macos-15]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          /bin/bash --version | head -1
+          sw_vers
+
+      - name: shellcheck
+        run: |
+          brew install shellcheck >/dev/null
+          shellcheck -s bash -S warning Scripts/install.sh Scripts/tests/install-selftest.sh
+
+      - name: Self-test with macOS /bin/bash 3.2
+        run: /bin/bash Scripts/tests/install-selftest.sh
+
+      - name: One-line installer (CI mode) from GitHub
+        env:
+          SWINGWATCH_CI: "1"
+          SWINGWATCH_BRANCH: ${{ github.ref_name }}
+          SWINGWATCH_DIR: ${{ runner.temp }}/SwingWatch
+        run: |
+          /bin/bash -c "$(curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/Scripts/install.sh")"

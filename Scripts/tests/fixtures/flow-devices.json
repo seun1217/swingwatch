@@ -1,0 +1,55 @@
+{
+  "info": {
+    "arguments": ["devicectl", "list", "devices", "--json-output", "out.json"],
+    "commandType": "devicectl.list.devices",
+    "jsonVersion": 3,
+    "outcome": "success",
+    "version": "518.33"
+  },
+  "result": {
+    "devices": [
+      {
+        "identifier": "11111111-2222-3333-4444-555555555555",
+        "hardwareProperties": {
+          "udid": "00008110-000A11111111801E",
+          "platform": "iOS",
+          "deviceType": "iPhone",
+          "productType": "iPhone16,1",
+          "reality": "physical"
+        },
+        "deviceProperties": {
+          "name": "Test iPhone",
+          "osVersionNumber": "26.6",
+          "developerModeStatus": "enabled",
+          "ddiServicesAvailable": true
+        },
+        "connectionProperties": {
+          "pairingState": "paired",
+          "tunnelState": "connected",
+          "transportType": "wired"
+        }
+      },
+      {
+        "identifier": "66666666-7777-8888-9999-AAAAAAAAAAAA",
+        "hardwareProperties": {
+          "udid": "00008301-000B22222222202E",
+          "platform": "watchOS",
+          "deviceType": "appleWatch",
+          "productType": "Watch7,1",
+          "reality": "physical"
+        },
+        "deviceProperties": {
+          "name": "Test Apple Watch",
+          "osVersionNumber": "26.6",
+          "developerModeStatus": "enabled",
+          "ddiServicesAvailable": true
+        },
+        "connectionProperties": {
+          "pairingState": "paired",
+          "tunnelState": "disconnected",
+          "transportType": "localNetwork"
+        }
+      }
+    ]
+  }
+}

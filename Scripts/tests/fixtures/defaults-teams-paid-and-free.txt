@@ -1,0 +1,16 @@
+{
+    "2B3CF5A0-7D60-45CA-A716-26D75CF3F6B3" =     (
+                {
+            isFreeProvisioningTeam = 0;
+            teamID = PAID123456;
+            teamName = "Some Company";
+            teamType = Company;
+        },
+                {
+            isFreeProvisioningTeam = 1;
+            teamID = FREE654321;
+            teamName = "Test User (Personal Team)";
+            teamType = "Personal Team";
+        }
+    );
+}

@@ -1,0 +1,621 @@
+{
+  "info": {
+    "arguments": [
+      "devicectl",
+      "list",
+      "devices",
+      "--json-output",
+      "/tmp/cinderline-devices-current.json"
+    ],
+    "commandType": "devicectl.list.devices",
+    "environment": {
+      "TERM": "dumb"
+    },
+    "jsonVersion": 5,
+    "outcome": "success",
+    "version": "642.16"
+  },
+  "result": {
+    "devices": [
+      {
+        "_deprecationNotice": {
+          "deprecatedFields": [
+            "hardwareProperties",
+            "deviceProperties",
+            "connectionProperties"
+          ],
+          "message": "The 'hardwareProperties', 'deviceProperties', 'connectionProperties' fields are deprecated and will be removed in a future release. Use the 'properties' dictionary instead.",
+          "replacement": "properties"
+        },
+        "capabilities": [
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.acquireusageassertion",
+            "name": "Acquire Usage Assertion"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.connectdevice",
+            "name": "Connect to Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.default.user.credentials",
+            "name": "Modify Credentials for Default Users for a Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.tags",
+            "name": "Modify Tags"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.unpairdevice",
+            "name": "Unpair Device"
+          }
+        ],
+        "connectionProperties": {
+          "authenticationType": "manualPairing",
+          "isMobileDeviceOnly": false,
+          "lastConnectionDate": "2026-09-13T04:54:00.000Z",
+          "pairingState": "paired",
+          "potentialHostnames": [
+            "763af85a.coredevice.local",
+            "ac852c03.coredevice.local",
+            "25df6471.coredevice.local"
+          ],
+          "transportType": "localNetwork",
+          "tunnelState": "disconnected",
+          "tunnelTransportProtocol": "tcp"
+        },
+        "deviceProperties": {
+          "bootState": "booted",
+          "bootedFromSnapshot": true,
+          "bootedSnapshotName": "com.apple.os.update-7E076E2FAD68A55868B98854997DE3D3F9CEF12BF54E1257A46D4906175E1DDD",
+          "ddiServicesAvailable": false,
+          "developerModeStatus": "enabled",
+          "hasInternalOSBuild": false,
+          "name": "Test iPhone",
+          "osBuildUpdate": "24A5430a",
+          "osVersionNumber": "27.0",
+          "releaseType": "Beta",
+          "rootFileSystemIsWritable": false,
+          "supportsCheckedAllocations": true
+        },
+        "hardwareProperties": {
+          "cpuType": {
+            "name": "arm64e",
+            "subType": -2147483646,
+            "type": 16777228
+          },
+          "deviceType": "iPhone",
+          "ecid": 262571083068664,
+          "hardwareModel": "V54AP",
+          "internalStorageCapacity": 256000000000,
+          "isProductionFused": true,
+          "marketingName": "iPhone 17 Pro Max",
+          "platform": "iOS",
+          "productType": "iPhone18,2",
+          "reality": "physical",
+          "serialNumber": "SERIAL042EC1",
+          "supportedCPUTypes": [
+            {
+              "name": "arm64e",
+              "subType": -2147483646,
+              "type": 16777228
+            },
+            {
+              "name": "arm64",
+              "subType": 0,
+              "type": 16777228
+            }
+          ],
+          "supportedDeviceFamilies": [
+            1
+          ],
+          "thinningProductType": "iPhone18,2",
+          "udid": "00008150-44E6E96A6F0EB090"
+        },
+        "identifier": "591D2339-28CF-83FE-544A-F8B0723FE1D1",
+        "properties": {
+          "connection": {
+            "authenticationType": "manualPairing",
+            "lastConnectionDate": 810968040,
+            "pairingState": "paired",
+            "state": "disconnected",
+            "transportType": "localNetwork",
+            "tunnelTransportProtocol": "tcp"
+          },
+          "hardware": {
+            "cpuCount": {
+              "logicalCores": 6,
+              "packages": 1,
+              "physicalCores": 6
+            },
+            "cpuType": {
+              "subtype": 18446744071562067970,
+              "type": 16777228
+            },
+            "deviceType": "iPhone",
+            "ecid": 262571083068664,
+            "hasActionButton": true,
+            "internalStorageCapacity": 256000000000,
+            "marketingName": "iPhone 17 Pro Max",
+            "platform": "iOS",
+            "productType": "iPhone18,2",
+            "reality": "physical",
+            "serialNumber": "SERIAL042EC1",
+            "supportedBiometrics": [
+              "faceID"
+            ],
+            "supportedCPUTypes": [
+              {
+                "subtype": 18446744071562067970,
+                "type": 16777228
+              },
+              {
+                "subtype": 0,
+                "type": 16777228
+              }
+            ],
+            "supportedDeviceFamilies": [
+              1
+            ],
+            "supportsSiri": true,
+            "thinningProductType": "iPhone18,2",
+            "udid": "00008150-44E6E96A6F0EB090"
+          },
+          "software": {
+            "osBuildVersions": {
+              "buildVersion": {
+                "majorLetterComponent": "A",
+                "majorNumberComponent": 24,
+                "name": "24A5430a",
+                "revisionVersion": {
+                  "components": [
+                    24,
+                    1,
+                    430,
+                    5,
+                    1
+                  ],
+                  "originalComponentsCount": 5,
+                  "stringValue": "24.1.430.5.1"
+                },
+                "trainProgram": "iOS",
+                "updateLetterComponent": "a",
+                "updateNumberComponent": 5430
+              },
+              "supplementalBuildVersion": {
+                "majorLetterComponent": "A",
+                "majorNumberComponent": 24,
+                "name": "24A5430a",
+                "revisionVersion": {
+                  "components": [
+                    24,
+                    1,
+                    430,
+                    5,
+                    1
+                  ],
+                  "originalComponentsCount": 5,
+                  "stringValue": "24.1.430.5.1"
+                },
+                "trainProgram": "iOS",
+                "updateLetterComponent": "a",
+                "updateNumberComponent": 5430
+              }
+            },
+            "osVersionNumber": {
+              "components": [
+                27,
+                0,
+                0,
+                0,
+                0
+              ],
+              "originalComponentsCount": 2,
+              "stringValue": "27.0"
+            },
+            "supportsCheckedAllocations": true
+          },
+          "state": {
+            "bootState": "booted",
+            "developerModeStatus": {
+              "enabled": {
+                "mode": 1
+              }
+            },
+            "name": "Test iPhone"
+          }
+        },
+        "propertyDisplayNames": null,
+        "visibilityClass": "default"
+      },
+      {
+        "_deprecationNotice": {
+          "deprecatedFields": [
+            "hardwareProperties",
+            "deviceProperties",
+            "connectionProperties"
+          ],
+          "message": "The 'hardwareProperties', 'deviceProperties', 'connectionProperties' fields are deprecated and will be removed in a future release. Use the 'properties' dictionary instead.",
+          "replacement": "properties"
+        },
+        "capabilities": [
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.acquireusageassertion",
+            "name": "Acquire Usage Assertion"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.connectdevice",
+            "name": "Connect to Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.default.user.credentials",
+            "name": "Modify Credentials for Default Users for a Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.tags",
+            "name": "Modify Tags"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.unpairdevice",
+            "name": "Unpair Device"
+          }
+        ],
+        "connectionProperties": {
+          "authenticationType": "manualPairing",
+          "isMobileDeviceOnly": false,
+          "pairingState": "paired",
+          "potentialHostnames": [
+            "614927a2.coredevice.local",
+            "fa3d0246.coredevice.local",
+            "62507a61.coredevice.local"
+          ],
+          "transportType": "localNetwork",
+          "tunnelState": "disconnected",
+          "tunnelTransportProtocol": "tcp"
+        },
+        "deviceProperties": {
+          "bootState": "booted",
+          "ddiServicesAvailable": false,
+          "name": "Test Apple Watch"
+        },
+        "hardwareProperties": {
+          "deviceType": "appleWatch",
+          "ecid": 220695838437365,
+          "platform": "watchOS",
+          "productType": "Watch7,5",
+          "udid": "00008310-4B7051A0167B3513"
+        },
+        "identifier": "B84D0636-46AD-0D7F-F62B-BDB7864D0451",
+        "properties": {
+          "connection": {
+            "authenticationType": "manualPairing",
+            "pairingState": "paired",
+            "state": "disconnected",
+            "transportType": "localNetwork",
+            "tunnelTransportProtocol": "tcp"
+          },
+          "hardware": {
+            "deviceType": "appleWatch",
+            "ecid": 220695838437365,
+            "platform": "watchOS",
+            "productType": "Watch7,5",
+            "udid": "00008310-4B7051A0167B3513"
+          },
+          "state": {
+            "bootState": "booted",
+            "name": "Test Apple Watch"
+          }
+        },
+        "propertyDisplayNames": null,
+        "visibilityClass": "default"
+      },
+      {
+        "_deprecationNotice": {
+          "deprecatedFields": [
+            "hardwareProperties",
+            "deviceProperties",
+            "connectionProperties"
+          ],
+          "message": "The 'hardwareProperties', 'deviceProperties', 'connectionProperties' fields are deprecated and will be removed in a future release. Use the 'properties' dictionary instead.",
+          "replacement": "properties"
+        },
+        "capabilities": [
+          {
+            "featureIdentifier": "com.apple.dt.coredevice.device.boot",
+            "name": "Boot Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.companiondevicepairing",
+            "name": "Companion Device Pairing"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.default.user.credentials",
+            "name": "Modify Credentials for Default Users for a Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.tags",
+            "name": "Modify Tags"
+          },
+          {
+            "featureIdentifier": "com.apple.dt.coredevice.plugin.removedevice",
+            "name": "Remove Provisioned Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.renamedevice",
+            "name": "Rename Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.resetContentAndSettings",
+            "name": "Reset Settings and Content"
+          }
+        ],
+        "connectionProperties": {
+          "authenticationType": "implicit",
+          "isMobileDeviceOnly": false,
+          "lastConnectionDate": "2026-09-11T16:45:59.000Z",
+          "pairingState": "paired",
+          "potentialHostnames": [],
+          "transportType": "sameMachine",
+          "tunnelState": "disconnected"
+        },
+        "deviceProperties": {
+          "bootState": "shutdown",
+          "ddiServicesAvailable": false,
+          "hasInternalOSBuild": false,
+          "name": "Test iPhone",
+          "osBuildUpdate": "24A5390f",
+          "osVersionNumber": "27.0",
+          "provider": "com.apple.CoreSimulator.SimulatorCoreDevicePlugin"
+        },
+        "hardwareProperties": {
+          "cpuType": {
+            "name": "arm64",
+            "subType": 0,
+            "type": 16777228
+          },
+          "deviceType": "iPhone",
+          "hardwareModel": "V53",
+          "marketingName": "iPhone 17 Pro",
+          "platform": "iOS",
+          "productType": "iPhone18,1",
+          "reality": "simulated",
+          "supportedCPUTypes": [
+            {
+              "name": "arm64",
+              "subType": 0,
+              "type": 16777228
+            }
+          ],
+          "udid": "282C6453-61B2-DC24-0FB7-940A5A5A7EB1"
+        },
+        "identifier": "282C6453-61B2-DC24-0FB7-940A5A5A7EB1",
+        "properties": {
+          "connection": {
+            "authenticationType": "implicit",
+            "lastConnectionDate": 810837959,
+            "pairingState": "paired",
+            "state": "disconnected",
+            "transportType": "sameMachine"
+          },
+          "hardware": {
+            "cpuType": {
+              "subtype": 0,
+              "type": 16777228
+            },
+            "deviceType": "iPhone",
+            "hasActionButton": true,
+            "marketingName": "iPhone 17 Pro",
+            "platform": "iOS",
+            "productType": "iPhone18,1",
+            "reality": "simulated",
+            "supportedBiometrics": [
+              "faceID"
+            ],
+            "supportedCPUTypes": [
+              {
+                "subtype": 0,
+                "type": 16777228
+              }
+            ],
+            "supportsSiri": true,
+            "udid": "282C6453-61B2-DC24-0FB7-940A5A5A7EB1"
+          },
+          "software": {
+            "osBuildVersions": {
+              "buildVersion": {
+                "majorLetterComponent": "A",
+                "majorNumberComponent": 24,
+                "name": "24A5390f",
+                "revisionVersion": {
+                  "components": [
+                    24,
+                    1,
+                    390,
+                    5,
+                    6
+                  ],
+                  "originalComponentsCount": 5,
+                  "stringValue": "24.1.390.5.6"
+                },
+                "updateLetterComponent": "f",
+                "updateNumberComponent": 5390
+              }
+            },
+            "osVersionNumber": {
+              "components": [
+                27,
+                0,
+                0,
+                0,
+                0
+              ],
+              "originalComponentsCount": 2,
+              "stringValue": "27.0"
+            }
+          },
+          "state": {
+            "bootState": "shutdown",
+            "name": "Test iPhone",
+            "preparednessState": 0,
+            "visibilityClass": "simulators"
+          }
+        },
+        "propertyDisplayNames": null,
+        "visibilityClass": "simulators"
+      },
+      {
+        "_deprecationNotice": {
+          "deprecatedFields": [
+            "hardwareProperties",
+            "deviceProperties",
+            "connectionProperties"
+          ],
+          "message": "The 'hardwareProperties', 'deviceProperties', 'connectionProperties' fields are deprecated and will be removed in a future release. Use the 'properties' dictionary instead.",
+          "replacement": "properties"
+        },
+        "capabilities": [
+          {
+            "featureIdentifier": "com.apple.dt.coredevice.device.boot",
+            "name": "Boot Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.companiondevicepairing",
+            "name": "Companion Device Pairing"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.default.user.credentials",
+            "name": "Modify Credentials for Default Users for a Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.tags",
+            "name": "Modify Tags"
+          },
+          {
+            "featureIdentifier": "com.apple.dt.coredevice.plugin.removedevice",
+            "name": "Remove Provisioned Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.renamedevice",
+            "name": "Rename Device"
+          },
+          {
+            "featureIdentifier": "com.apple.coredevice.feature.resetContentAndSettings",
+            "name": "Reset Settings and Content"
+          }
+        ],
+        "connectionProperties": {
+          "authenticationType": "implicit",
+          "isMobileDeviceOnly": false,
+          "lastConnectionDate": "2026-09-13T13:07:44.000Z",
+          "pairingState": "paired",
+          "potentialHostnames": [],
+          "transportType": "sameMachine",
+          "tunnelState": "disconnected"
+        },
+        "deviceProperties": {
+          "bootState": "shutdown",
+          "ddiServicesAvailable": false,
+          "hasInternalOSBuild": false,
+          "name": "Test iPhone",
+          "osBuildUpdate": "24A5390f",
+          "osVersionNumber": "27.0",
+          "provider": "com.apple.CoreSimulator.SimulatorCoreDevicePlugin"
+        },
+        "hardwareProperties": {
+          "cpuType": {
+            "name": "arm64",
+            "subType": 0,
+            "type": 16777228
+          },
+          "deviceType": "iPhone",
+          "hardwareModel": "V63",
+          "marketingName": "iPhone 18 Pro",
+          "platform": "iOS",
+          "productType": "iPhone19,2",
+          "reality": "simulated",
+          "supportedCPUTypes": [
+            {
+              "name": "arm64",
+              "subType": 0,
+              "type": 16777228
+            }
+          ],
+          "udid": "3CE9D662-EF15-AA57-8B30-7375A3ABFEC3"
+        },
+        "identifier": "3CE9D662-EF15-AA57-8B30-7375A3ABFEC3",
+        "properties": {
+          "connection": {
+            "authenticationType": "implicit",
+            "lastConnectionDate": 810997664,
+            "pairingState": "paired",
+            "state": "disconnected",
+            "transportType": "sameMachine"
+          },
+          "hardware": {
+            "cpuType": {
+              "subtype": 0,
+              "type": 16777228
+            },
+            "deviceType": "iPhone",
+            "hasActionButton": true,
+            "marketingName": "iPhone 18 Pro",
+            "platform": "iOS",
+            "productType": "iPhone19,2",
+            "reality": "simulated",
+            "supportedBiometrics": [
+              "faceID"
+            ],
+            "supportedCPUTypes": [
+              {
+                "subtype": 0,
+                "type": 16777228
+              }
+            ],
+            "supportsSiri": true,
+            "udid": "3CE9D662-EF15-AA57-8B30-7375A3ABFEC3"
+          },
+          "software": {
+            "osBuildVersions": {
+              "buildVersion": {
+                "majorLetterComponent": "A",
+                "majorNumberComponent": 24,
+                "name": "24A5390f",
+                "revisionVersion": {
+                  "components": [
+                    24,
+                    1,
+                    390,
+                    5,
+                    6
+                  ],
+                  "originalComponentsCount": 5,
+                  "stringValue": "24.1.390.5.6"
+                },
+                "updateLetterComponent": "f",
+                "updateNumberComponent": 5390
+              }
+            },
+            "osVersionNumber": {
+              "components": [
+                27,
+                0,
+                0,
+                0,
+                0
+              ],
+              "originalComponentsCount": 2,
+              "stringValue": "27.0"
+            }
+          },
+          "state": {
+            "bootState": "shutdown",
+            "name": "Test iPhone",
+            "preparednessState": 0,
+            "visibilityClass": "simulators"
+          }
+        },
+        "propertyDisplayNames": null,
+        "visibilityClass": "simulators"
+      }
+    ]
+  }
+}
