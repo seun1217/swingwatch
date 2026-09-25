@@ -52,7 +52,7 @@ IPHONE_PAIR=""; IPHONE_TUNNEL=""; IPHONE_TRANSPORT=""
 WATCH_ID=""; WATCH_UDID=""; WATCH_NAME=""; WATCH_OS=""; WATCH_DEVMODE=""
 WATCH_PAIR=""; WATCH_TUNNEL=""; WATCH_READY=0
 DERIVED=""; APP_PATH=""; WATCH_APP_PATH=""
-BUILD_ERR=""; PLATFORMS_DOWNLOADED=0; POLL_REPLY=""
+BUILD_ERR=""; PLATFORMS_DOWNLOADED=0; POLL_REPLY=""; PREFERRED_IPHONE=""
 
 # ----------------------------------------------------------------------------
 # 화면 출력
@@ -502,23 +502,26 @@ select_team() {
   if [ -n "${SWINGWATCH_TEAM_ID:-}" ]; then
     TEAM_ID="$SWINGWATCH_TEAM_ID"; ok "지정된 팀: $TEAM_ID"; config_set team "$TEAM_ID"; return
   fi
-  local waited=0 hinted=0 rc pane
+  local start=$SECONDS shown=0 hinted=0 rc pane
   pane="$(accounts_pane_name)"
   while :; do
     rc=0; TEAM_ID=$(xt_pick_team) || rc=$?
     if [ $rc -eq 0 ] && [ -n "$TEAM_ID" ]; then break; fi
     [ $rc -eq 2 ] && die "서명 팀을 고르지 않아 설치를 멈췄어요."
-    if [ $waited -eq 0 ]; then
+    if [ $shown -eq 0 ]; then
+      shown=1
       open -a "$XCODE_APP" 2>/dev/null || true
       todo "Xcode에 Apple ID로 로그인해 주세요 (처음 한 번만).
- 1. 방금 열린 Xcode에서, 화면 맨 위 메뉴 [Xcode] → [Settings…] (단축키 ⌘ ,)
+ 0. Xcode가 처음 열리면 '구성요소/플랫폼을 고르는 창'이 뜰 수 있어요.
+    도우미가 필요한 것만 받고 있으니, 그 창은 그냥 닫거나 건너뛰어도 돼요.
+ 1. Xcode에서, 화면 맨 위 메뉴 [Xcode] → [Settings…] (단축키 ⌘ ,)
  2. 위쪽 [$pane] 탭 → 왼쪽 아래 [+] → [Apple ID] (또는 Apple Account) → [Continue]
  3. 평소 쓰는 Apple ID, 암호, 인증 코드 입력
  4. 오른쪽에 '내 이름 (Personal Team)'이 보이면 끝이에요.
 무료 Apple ID면 충분해요. 로그인되면 자동으로 다음 단계로 넘어가요."
       printf '    로그인 기다리는 중'
     fi
-    if [ $hinted -eq 0 ] && [ $waited -ge 60 ] && xt_account_signed_in; then
+    if [ $hinted -eq 0 ] && [ $((SECONDS - start)) -ge 60 ] && xt_account_signed_in; then
       hinted=1
       echo
       todo "로그인은 확인됐는데 팀 정보가 아직 없어요. Xcode 설정 창에서:
@@ -526,11 +529,11 @@ select_team() {
 인증서가 만들어지면 바로 이어서 진행해요."
       printf '    기다리는 중'
     fi
-    [ $waited -ge 1800 ] && { echo; die "30분 동안 Xcode 로그인이 확인되지 않았어요."; }
+    [ $((SECONDS - start)) -ge 1800 ] && { echo; die "30분 동안 Xcode 로그인이 확인되지 않았어요."; }
     printf '.'
-    poll_wait 3; waited=$((waited + 3))
+    poll_wait 3
   done
-  [ $waited -gt 0 ] && echo
+  [ $shown -gt 0 ] && echo
   config_set team "$TEAM_ID"
   ok "서명 팀: $TEAM_ID"
 }
@@ -572,6 +575,7 @@ pick_iphone() {
     [ "$pairing" = "paired" ] && rank=$((rank + 4))
     if [ "$tunnel" != "unavailable" ] && [ "$transport" != "-" ]; then rank=$((rank + 2)); fi
     [ "$transport" = "wired" ] && rank=$((rank + 1))
+    [ -n "$PREFERRED_IPHONE" ] && [ "$udid" = "$PREFERRED_IPHONE" ] && rank=$((rank + 20))
     if [ "$rank" -gt "$best" ]; then
       best=$rank; IPHONE_ID=$ident; IPHONE_UDID=$udid; IPHONE_NAME=$name; IPHONE_OS=$osver
       IPHONE_DEVMODE=$devmode; IPHONE_PAIR=$pairing; IPHONE_TUNNEL=$tunnel; IPHONE_TRANSPORT=$transport
@@ -599,6 +603,13 @@ pick_watch() {
   [ -n "$WATCH_ID" ]
 }
 
+# 지금 연결 가능한 iPhone들: UDID<TAB>이름<TAB>iOS
+reachable_iphones() {
+  awk -F'\t' '$11 != "simulated" && $3 == "iOS" && ($4 == "iPhone" || $4 == "-") &&
+               $9 == "paired" && $7 != "unavailable" && $8 != "-" && $2 != "-" { print $2 "\t" $5 "\t" $10 }' \
+    "$WORK/devices.tsv"
+}
+
 # 상태 이름: none | unpaired | offline | devmode | ready
 iphone_state() {
   if [ -z "$IPHONE_ID" ]; then echo none
@@ -611,9 +622,22 @@ iphone_state() {
 
 select_iphone() {
   step "iPhone 확인"
-  local state last="" waited=0 nudged=0 line
+  local state last="" start=$SECONDS nudged=0 line phones n pick devmode_shown=0 msg
+  PREFERRED_IPHONE="${SWINGWATCH_DEVICE:-$(config_get iphone)}"
   while :; do
     refresh_devices
+    # 연결된 iPhone이 여러 대이고 아직 고른 적이 없으면 물어본다(엉뚱한 폰에 설치하지 않도록).
+    phones="$(reachable_iphones)"
+    n=$(printf '%s' "$phones" | grep -c . || true)
+    if [ "$n" -gt 1 ] && ! printf '%s\n' "$phones" | cut -f1 | grep -qxF "${PREFERRED_IPHONE:-none}"; then
+      [ -n "$last" ] && echo
+      info "연결된 iPhone이 여러 대예요. 스윙워치를 설치할 iPhone을 골라주세요:"
+      printf '%s\n' "$phones" | awk -F'\t' '{printf "      %d) %s (iOS %s)\n", NR, $2, $3}'
+      pick="$(choose "$n")"
+      PREFERRED_IPHONE="$(printf '%s\n' "$phones" | sed -n "${pick}p" | cut -f1)"
+      config_set iphone "$PREFERRED_IPHONE"
+      last=""
+    fi
     pick_iphone || true
     state="$(iphone_state)"
     if [ "$state" = devmode ]; then
@@ -627,7 +651,8 @@ select_iphone() {
       [ -n "$last" ] && echo
       case "$state" in
         none) todo "iPhone을 케이블로 Mac에 연결하고 iPhone 잠금을 풀어주세요.
-'이 컴퓨터를 신뢰하겠습니까?'가 뜨면 [신뢰] → iPhone 암호 입력." ;;
+'이 컴퓨터를 신뢰하겠습니까?'가 뜨면 [신뢰] → iPhone 암호 입력.
+(iOS 17 이상이어야 해요. 케이블이 충전 전용이면 다른 케이블을 써보세요)" ;;
         unpaired)
           todo "iPhone 화면의 '이 컴퓨터를 신뢰하겠습니까?'에서 [신뢰]를 누르고 암호를 입력하세요.
 창이 안 보이면 케이블을 뺐다가 다시 꽂고 iPhone 잠금을 풀어보세요."
@@ -635,18 +660,31 @@ select_iphone() {
             nudged=1
             xcrun devicectl manage pair --device "$IPHONE_ID" --timeout 60 >"$WORK/pair.log" 2>&1 &
           fi ;;
-        offline) todo "'${IPHONE_NAME}'에 연결이 안 돼요. 케이블을 다시 꽂고 iPhone 잠금을 풀어주세요." ;;
-        devmode) todo "iPhone에서 '개발자 모드'를 켜주세요 (${IPHONE_NAME}):
+        offline)
+          if [ $devmode_shown -eq 1 ]; then
+            msg="iPhone이 재시동 중이면 켜질 때까지 기다렸다가 잠금을 풀어주세요."
+          else
+            msg="'${IPHONE_NAME}'에 연결이 안 돼요. 케이블을 다시 꽂고 iPhone 잠금을 풀어주세요."
+          fi
+          todo "$msg" ;;
+        devmode)
+          if [ $devmode_shown -eq 1 ]; then
+            todo "재시동 후 잠금을 풀면 '개발자 모드를 켜겠습니까?'가 떠요 → [켜기] → 암호 입력.
+(이미 켰다면 잠시만 기다리세요. 자동으로 확인해요)"
+          else
+            devmode_shown=1
+            todo "iPhone에서 '개발자 모드'를 켜주세요 (${IPHONE_NAME}):
  1. [설정] → [개인정보 보호 및 보안] → 맨 아래 [개발자 모드] 켜기
  2. [재시동] → 켜지면 잠금 해제 → '개발자 모드를 켜겠습니까?'에서 [켜기] → 암호
-(메뉴가 안 보이면 케이블을 다시 꽂고 1분쯤 뒤에 확인하세요)" ;;
+(메뉴가 안 보이면 케이블을 다시 꽂고 1분쯤 뒤에 확인하세요)"
+          fi ;;
       esac
       printf '    기다리는 중'
       last="$state"
     fi
     printf '.'
-    [ $waited -ge 1800 ] && { echo; die "30분 동안 iPhone 준비가 끝나지 않았어요."; }
-    poll_wait 5; waited=$((waited + 5))
+    [ $((SECONDS - start)) -ge 1800 ] && { echo; die "30분 동안 iPhone 준비가 끝나지 않았어요."; }
+    poll_wait 5
   done
   [ -n "$last" ] && echo
   ok "iPhone: ${IPHONE_NAME} (iOS ${IPHONE_OS})"
@@ -670,7 +708,7 @@ check_os_support() {
 # 따로 필요하다. 준비가 안 되면 건너뛰고 iPhone만 설치한다(나중에 다시 실행하면 됨).
 # ----------------------------------------------------------------------------
 devices_window_name() {
-  if [ "$XCODE_MAJOR" -ge 27 ]; then echo "[Window] → [Device Hub]"; else echo "[Window] → [Devices and Simulators] (단축키 ⇧⌘2)"; fi
+  if [ "$XCODE_MAJOR" -ge 27 ]; then echo "[Xcode] → [Open Developer Tool] → [Device Hub]"; else echo "[Window] → [Devices and Simulators] (단축키 ⇧⌘2)"; fi
 }
 
 # 연결이 안 되는 기기는 개발자 모드가 '꺼짐'으로 보고되므로(실제 값을 못 읽음) 먼저 연결 상태를 본다.
@@ -686,16 +724,17 @@ watch_state() {
 setup_watch() {
   step "Apple Watch 확인 (워치가 없으면 건너뛰어도 돼요)"
   if [ "${SWINGWATCH_SKIP_WATCH:-0}" = 1 ]; then info "워치 단계는 건너뛸게요."; return; fi
-  local state last="" waited=0 nudged=0 line win
+  local state last="" start=$SECONDS nudged=0 line win
   win="$(devices_window_name)"
   while :; do
     refresh_devices
     pick_watch || true
     state="$(watch_state)"
-    if [ "$state" = devmode ] && [ -n "$WATCH_ID" ]; then
+    # 연결이 끊겨 보이거나 개발자 모드가 꺼져 보이면 워치에 직접 물어본다(터널을 깨우는 효과도 있음).
+    if { [ "$state" = devmode ] || [ "$state" = offline ]; } && [ -n "$WATCH_ID" ]; then
       line="$(device_details "$WATCH_ID")"
-      if [ -n "$line" ] && [ "$(printf '%s\n' "$line" | cut -f6)" = "enabled" ]; then
-        WATCH_DEVMODE=enabled
+      if [ -n "$line" ]; then
+        [ "$(printf '%s\n' "$line" | cut -f6)" = "enabled" ] && WATCH_DEVMODE=enabled
         WATCH_TUNNEL="$(printf '%s\n' "$line" | cut -f7)"
         state="$(watch_state)"
       fi
@@ -706,8 +745,8 @@ setup_watch() {
       [ -n "$last" ] && echo
       case "$state" in
         none) todo "워치를 Mac에 연결할게요. 아래를 확인해 주세요:
- 1. 워치를 차거나 충전기에 올리고, 화면을 깨워 잠금을 풀어두기
- 2. Mac의 Wi-Fi와 블루투스 켜기 (iPhone·워치와 같은 Wi-Fi)
+ 1. 워치를 차거나 충전기에 올리고, 화면을 깨워 잠금을 풀어두기 (워치에 암호가 설정돼 있어야 해요)
+ 2. Mac의 Wi-Fi와 블루투스 켜기, 워치 [설정] → [Wi-Fi]에서 Mac과 같은 Wi-Fi에 연결
  3. Xcode 메뉴 $win 을 열고 목록에서 워치를 클릭
  4. 워치에 '신뢰하겠습니까?'가 뜨면 [신뢰] (iPhone에도 뜨면 [신뢰])
 워치가 없거나 나중에 하려면 s 를 입력하고 Enter → iPhone만 설치해요." ;;
@@ -732,8 +771,8 @@ setup_watch() {
       last="$state"
     fi
     printf '.'
-    if [ $waited -ge 1200 ]; then echo; warn "20분 동안 워치가 준비되지 않아 iPhone만 설치할게요."; return; fi
-    poll_wait 5; waited=$((waited + 5))
+    if [ $((SECONDS - start)) -ge 1200 ]; then echo; warn "20분 동안 워치가 준비되지 않아 iPhone만 설치할게요."; return; fi
+    poll_wait 5
     if wants_skip; then echo; info "워치는 건너뛸게요. 나중에 이 명령을 다시 실행하면 워치도 설치돼요."; return; fi
   done
   [ -n "$last" ] && echo
@@ -778,7 +817,8 @@ explain_build_error() {
 며칠 뒤 이 명령을 다시 실행해 주세요. (다음부터는 같은 ID를 재사용해서 더 쓰지 않아요)" ;;
     account|no_team) todo "Xcode의 Apple ID 로그인이 필요하거나 만료됐어요.
 Xcode → [Settings…] → [$pane] 에서 계정을 선택해 다시 로그인하세요.
-그래도 안 되면 계정을 [-]로 지웠다가 [+]로 다시 추가해 보세요." ;;
+그래도 안 되면 계정을 [-]로 지웠다가 [+]로 다시 추가해 보세요.
+(새 약관이 있으면 https://developer.apple.com 에 로그인해 동의해야 할 수 있어요)" ;;
     no_device|destination) todo "Xcode가 기기를 찾지 못했어요.
  - 케이블 연결, iPhone 잠금 해제, [신뢰], 개발자 모드가 켜져 있는지 확인하세요." ;;
     devmode) todo "기기의 개발자 모드가 꺼져 있어요.
@@ -926,6 +966,7 @@ build_apps() {
     info "앱 ID: $BUNDLE_PREFIX.swingwatch"
 
     # 워치를 먼저: 워치를 대상으로 빌드해야 무료 팀 프로필에 워치가 등록된다.
+    [ "$WATCH_READY" = 1 ] && [ "$WATCH_WOKEN" = 0 ] && wake_watch_for_build
     if [ "$WATCH_READY" = 1 ]; then
       if ! signed_build "$WATCH_SCHEME" "platform=watchOS,id=$WATCH_UDID" "워치 앱 빌드 중" watch; then
         if [ "$BUILD_ERR" = busy ]; then
@@ -936,6 +977,13 @@ build_apps() {
           else
             wait_device_busy; attempts=$((attempts - 1)); continue
           fi
+        fi
+        if [ "$WATCH_READY" = 1 ] && [ "$BUILD_ERR" = destination ] && [ "$WATCH_RETRIED" = 0 ]; then
+          # 워치가 잠들었을 가능성이 가장 크다 → 한 번 깨우고 다시.
+          WATCH_RETRIED=1
+          todo "Xcode가 워치를 찾지 못했어요. 워치 화면을 깨워 잠금을 풀고 Mac 가까이 두세요(충전기 위 권장)."
+          press_enter
+          attempts=$((attempts - 1)); continue
         fi
         [ "$WATCH_READY" = 1 ] && case "$BUILD_ERR" in
           destination|devmode|no_device|provisioning|unknown)
@@ -964,6 +1012,25 @@ build_apps() {
   if [ "$WATCH_READY" = 1 ] && ! profile_has_device "$WATCH_APP_PATH" "$WATCH_UDID"; then
     warn "워치 앱 서명에 이 워치가 아직 등록되지 않았어요. 워치 설치가 실패할 수 있어요."
   fi
+}
+
+# 구성요소 다운로드 등을 기다리는 사이 워치가 잠들었을 수 있다 → 빌드 직전에 깨운다.
+WATCH_WOKEN=0; WATCH_RETRIED=0
+wake_watch_for_build() {
+  WATCH_WOKEN=1
+  local start=$SECONDS line
+  info "워치 앱을 빌드할게요. 워치 화면을 켜서 잠금을 풀고 Mac 가까이 두세요(충전기 위 권장)."
+  while :; do
+    line="$(device_details "$WATCH_ID")"
+    [ -n "$line" ] && WATCH_TUNNEL="$(printf '%s\n' "$line" | cut -f7)"
+    [ "$(watch_state)" = ready ] && return 0
+    if [ $((SECONDS - start)) -ge 180 ]; then
+      warn "워치에 연결되지 않아 이번엔 iPhone만 설치할게요. 나중에 이 명령을 다시 실행하면 워치도 설치돼요."
+      WATCH_READY=0; return 1
+    fi
+    poll_wait 5
+    if wants_skip; then WATCH_READY=0; info "워치는 건너뛸게요."; return 1; fi
+  done
 }
 
 # 기기(특히 워치)를 처음 개발용으로 준비하는 동안 Xcode는 기기를 "busy"로 표시한다.
@@ -1075,7 +1142,7 @@ install_iphone() {
 
 launch_iphone() {
   step "iPhone에서 실행 확인"
-  local bundle="$BUNDLE_PREFIX.swingwatch" kind said="" tries=0 waited=0
+  local bundle="$BUNDLE_PREFIX.swingwatch" kind said="" tries=0 start=$SECONDS
   while :; do
     rm -f "$WORK/launch.json"
     if xcrun devicectl device process launch --device "$IPHONE_ID" --terminate-existing \
@@ -1107,8 +1174,8 @@ launch_iphone() {
       said="$kind"
     fi
     printf '.'
-    if [ $waited -ge 900 ]; then echo; warn "자동 실행은 건너뛸게요. 신뢰 설정 후 iPhone에서 직접 열어주세요."; return 0; fi
-    poll_wait 5; waited=$((waited + 5))
+    if [ $((SECONDS - start)) -ge 900 ]; then echo; warn "자동 실행은 건너뛸게요. 신뢰 설정 후 iPhone에서 직접 열어주세요."; return 0; fi
+    poll_wait 5
   done
 }
 
@@ -1152,8 +1219,9 @@ install_watch() {
     if [ $tries -ge 4 ]; then
       WATCH_READY=0
       warn "워치에 직접 설치하지 못했어요."
-      todo "iPhone의 [Watch] 앱 → [나의 시계] → 아래로 내려 [사용 가능한 앱] →
-스윙워치 [설치] 를 시도해 보세요. 안 되면 워치 화면을 켠 채 이 명령을 다시 실행하세요."
+      todo "워치를 충전기에 올려 화면을 켜두고, iPhone [설정] → [Bluetooth]를 잠시 끈 뒤
+이 명령을 다시 실행해 보세요(워치가 Wi-Fi로 연결돼요. 설치 후 Bluetooth는 다시 켜세요).
+iPhone 앱은 이미 설치돼 있어요."
       return
     fi
   done
@@ -1217,8 +1285,8 @@ main() {
     return 0
   fi
 
+  start_platform_downloads   # 로그인·기기 준비와 동시에 받도록 먼저 시작
   select_team
-  start_platform_downloads
   select_iphone
   setup_watch
   finish_platform_downloads

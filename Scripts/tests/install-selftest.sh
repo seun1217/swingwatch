@@ -38,6 +38,11 @@ pick_iphone; check "v3: 유선 연결된 iPhone 선택" "$IPHONE_TRANSPORT/$IPHO
 check "v3: iPhone 준비 상태" "$(iphone_state)" "ready"
 pick_watch; check "v3: 연결 안 된 워치는 '오프라인'(개발자 모드 값은 믿지 않음)" "$(watch_state)" "offline"
 
+check "v3: 연결 가능한 iPhone 목록(오프라인 제외)" "$(reachable_iphones | cut -f3)" "26.0"
+
+load flow-two-iphones.json
+check "iPhone 두 대 연결: 둘 다 목록에" "$(reachable_iphones | grep -c .)" "2"
+
 load devicectl-v3-iphone.json
 check "v3: 미페어링 항목도 행으로 나옴" "$(grep -c . "$WORK/devices.tsv")" "4"
 pick_iphone; check "v3: 오프라인보다 연결 가능한 iPhone 우선" "$IPHONE_TUNNEL/$IPHONE_TRANSPORT" "disconnected/localNetwork"
@@ -270,7 +275,7 @@ xcrun() {
       echo "watchOS 11.2 (11.2 - 22S99) - com.apple.CoreSimulator.SimRuntime.watchOS-11-2 (unavailable, old)"
       [ -f "$T/watchos-installed" ] && echo "watchOS 26.5 (26.5 - 23T570) - com.apple.CoreSimulator.SimRuntime.watchOS-26-5"
       return 0 ;;
-    "devicectl list devices"*) cp "$FX/flow-devices.json" "$json" ;;
+    "devicectl list devices"*) cp "$FX/${FAKE_DEVICES:-flow-devices.json}" "$json" ;;
     "devicectl device info details"*) return 1 ;;
     "devicectl device info ddiServices"*) return 0 ;;
     "devicectl manage pair"*) return 0 ;;
@@ -353,6 +358,15 @@ printf 'team=OLDTEAM123\nbundle_prefix=com.swingwatch.toldteam123\nbundle_team=O
 check "흐름 6: 팀이 바뀐 재실행도 설치 완료" "$(run_flow "$T/flow6.out")" "0"
 contains "흐름 6: 새 팀에선 기본 앱 ID부터" "$T/calls.log" "BUNDLE_ID_PREFIX=com.seun1217 build"
 check "흐름 6: 새 팀 기록" "$(sed -n 's/^bundle_team=//p' "$T/SwingWatch/.install/config")" "Y8QK9BKTCW"
+
+# iPhone이 두 대 연결돼 있으면 물어보고(비대화형이면 1번) 기억한다
+rm -f "$T/SwingWatch/.install/config"; FAKE_DEVICES=flow-two-iphones.json
+check "흐름 7: iPhone 두 대여도 설치 완료" "$(run_flow "$T/flow7.out")" "0"
+contains "흐름 7: 어느 iPhone인지 물어봄" "$T/flow7.out" "연결된 iPhone이 여러 대예요"
+check "흐름 7: 선택 저장" "$(sed -n 's/^iphone=//p' "$T/SwingWatch/.install/config")" "00008120-000C33333333401E"
+check "흐름 8: 다시 실행하면 묻지 않음" "$(run_flow "$T/flow8.out"; grep -c '여러 대예요' "$T/flow8.out")" "0
+0"
+FAKE_DEVICES=""
 
 echo
 echo "통과 $PASS, 실패 $FAIL"
