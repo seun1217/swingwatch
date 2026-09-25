@@ -418,6 +418,8 @@ MINE="$(git -C "$T/SwingWatch" rev-parse HEAD)"
 check "흐름 9: 로컬 커밋이 있어도 설치 완료" "$(run_flow "$T/flow9.out")" "0"
 contains "흐름 9: 업데이트 건너뜀 안내" "$T/flow9.out" "직접 저장(커밋)한 변경이 있어서"
 check "흐름 9: 로컬 커밋 보존" "$(git -C "$T/SwingWatch" rev-parse HEAD)" "$MINE"
+run_flow "$T/flow9b.out" >/dev/null
+check "흐름 9: 한 번 더 실행해도 로컬 커밋 보존" "$(git -C "$T/SwingWatch" rev-parse HEAD)" "$MINE"
 ( cd "$T/SwingWatch" && git reset -q --hard HEAD~1 && rm -f MyTuning.txt )
 
 # Xcode에서 BUNDLE_ID_PREFIX를 바꿨다면: 백업하고 되돌리되 그 앱 ID는 이어받는다

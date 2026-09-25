@@ -319,6 +319,9 @@ fetch_code() {
     git clone --quiet --branch "$BRANCH" "$REPO_URL" "$INSTALL_DIR" 2>>"$WORK/git.log" \
       || { cat "$WORK/git.log" >&2; die "코드를 내려받지 못했어요. 인터넷 연결을 확인하세요."; }
     ok "코드를 내려받았어요 ($INSTALL_DIR)"
+    mkdir -p "$STATE_DIR"
+    # 설치 도우미가 둔 커밋을 기억한다(사용자가 만든 커밋과 구분하기 위해). 받거나 업데이트했을 때만 기록.
+    config_set installed_commit "$(gitc rev-parse HEAD 2>/dev/null)"
   fi
 
   mkdir -p "$STATE_DIR"
@@ -327,7 +330,6 @@ fetch_code() {
   log "installer: branch=$BRANCH xcode=$XCODE_APP major=$XCODE_MAJOR macOS=$(sw_vers -productVersion 2>/dev/null) commit=$(git -C "$INSTALL_DIR" rev-parse --short HEAD 2>/dev/null)"
   cat "$WORK"/*.log 2>/dev/null | redact >> "$LOG_FILE" || true
   [ -f "$INSTALL_DIR/$PROJECT_NAME.xcodeproj/project.pbxproj" ] || die "내려받은 코드에 Xcode 프로젝트가 없어요."
-  config_set installed_commit "$(gitc rev-parse HEAD 2>/dev/null)"
   DERIVED="$INSTALL_DIR/.build"
 }
 
@@ -373,6 +375,7 @@ update_code() {
   if { [ "$reset" = 1 ] && gitc reset --quiet --hard FETCH_HEAD 2>>"$WORK/git.log"; } \
      || { [ "$reset" = 0 ] && gitc merge --quiet --ff-only FETCH_HEAD 2>>"$WORK/git.log"; }; then
     ok "최신 코드로 업데이트했어요 ($INSTALL_DIR)"
+    config_set installed_commit "$(gitc rev-parse HEAD 2>/dev/null)"
   else
     warn "업데이트를 합치지 못해 지금 코드로 계속할게요."
   fi
