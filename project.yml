@@ -1,5 +1,5 @@
 # XcodeGen 프로젝트 정의.
-# 사용법: Scripts/bootstrap.sh 실행 (또는 `xcodegen generate` 후 Xcode 26이면 README의 패치 적용)
+# 사용법: Scripts/bootstrap.sh 실행 (= xcodegen generate). 보통은 CI가 자동으로 다시 생성한다.
 name: SwingWatch
 
 options:
@@ -14,6 +14,9 @@ settings:
     CODE_SIGN_STYLE: Automatic
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
+    # 번들 ID 앞부분. iPhone 앱·워치 앱·워치 Info.plist가 모두 이 값을 따라가므로
+    # "이미 사용 중인 ID" 에러가 나면 이 한 줄만 바꾸면 된다(설치 스크립트도 이 값을 덮어쓴다).
+    BUNDLE_ID_PREFIX: com.seun1217
     # 개인 팀으로 빌드하려면 Xcode의 Signing & Capabilities에서 팀만 선택하면 된다.
 
 targets:
@@ -26,7 +29,7 @@ targets:
       - path: Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.seun1217.swingwatch
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).swingwatch
         INFOPLIST_FILE: SwingWatch/App/Info.plist
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: "NO"
@@ -43,7 +46,7 @@ targets:
       - path: Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.seun1217.swingwatch.watchkitapp
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).swingwatch.watchkitapp
         INFOPLIST_FILE: SwingWatchWatch/Info.plist
         TARGETED_DEVICE_FAMILY: "4"
 
@@ -59,7 +62,7 @@ targets:
       - path: Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.seun1217.swingwatch.tests
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).swingwatch.tests
         GENERATE_INFOPLIST_FILE: "YES"
 
 schemes:

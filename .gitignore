@@ -71,3 +71,6 @@ SwingWatch.xcodeproj/project.xcworkspace/xcuserdata/
 # macOS / build
 .DS_Store
 DerivedData/
+
+# 설치 스크립트(Scripts/install.sh)의 로그·설정
+.install/

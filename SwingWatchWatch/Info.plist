@@ -27,6 +27,6 @@
 		<string>physical-therapy</string>
 	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
-	<string>com.seun1217.swingwatch</string>
+	<string>$(BUNDLE_ID_PREFIX).swingwatch</string>
 </dict>
 </plist>
